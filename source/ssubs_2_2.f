@@ -1,4 +1,4 @@
-C     ITERATIVE MATRIX SOLVERS (SLAP) ............ SUTRA VERSION 2.1     SLAP...........100
+C     ITERATIVE MATRIX SOLVERS (SLAP) ............ SUTRA VERSION 2.2     SLAP...........100
 C                                                                        SLAP...........200
 C *** PURPOSE :                                                          SLAP...........300
 C ***  TO SOLVE MATRIX PROBLEMS USING ITERATIVE METHODS.  THE COMPUTER   SLAP...........400
@@ -7875,1931 +7875,1934 @@ C         err = ||Residual||/||RightHandSide|| (2-Norms).                SLAP...
 C                  -1              -1                                    SLAP........787500
 C         err = ||M  Residual||/||M  RightHandSide|| (2-Norms).          SLAP........787600
          IF(ITER .EQ. 0) THEN                                            SLAP........787700
-            CALL MSOLVE(N, R, Z, NELT, IA, JA, A, ISYM, RWORK, IWORK)    SLAP........787800
-            BNRM = DNRM2(N, DZ, 1)                                       SLAP........787900
-         ENDIF                                                           SLAP........788000
-         ERR = DNRM2(N, Z, 1)/BNRM                                       SLAP........788100
-      ELSE IF( ITOL.EQ.11 ) THEN                                         SLAP........788200
-C         err = ||x-TrueSolution||/||TrueSolution|| (2-Norms).           SLAP........788300
-         IF(ITER .EQ. 0) SOLNRM = DNRM2(N, SOLN, 1)                      SLAP........788400
-         DO 10 I = 1, N                                                  SLAP........788500
-            DZ(I) = X(I) - SOLN(I)                                       SLAP........788600
- 10      CONTINUE                                                        SLAP........788700
-         ERR = DNRM2(N, DZ, 1)/SOLNRM                                    SLAP........788800
-      ELSE                                                               SLAP........788900
-C                                                                        SLAP........789000
-C         If we get here ITOL is not one of the acceptable values.       SLAP........789100
-         ERR = D1MACH(2)                                                 SLAP........789200
-         IERR = 3                                                        SLAP........789300
-      ENDIF                                                              SLAP........789400
-C                                                                        SLAP........789500
-      IF(IUNIT .NE. 0) THEN                                              SLAP........789600
-         IF( ITER.EQ.0 ) THEN                                            SLAP........789700
-C...........THE NEXT LINE OF CODE WAS MODIFIED DURING INTEGRATION        SLAP........789800
-C              OF SLAP WITH SUTRA.  IT ORIGINALLY READ:                  SLAP........789900
-C              WRITE(IUNIT,1000) N, ITOL                                 SLAP........790000
-            WRITE(IUNIT,1000)                                            SLAP........790100
-            WRITE(IUNIT,1010) ITER, ERR                                  SLAP........790200
-         ELSE                                                            SLAP........790300
-C...........THE NEXT LINE OF CODE WAS MODIFIED DURING INTEGRATION        SLAP........790400
-C              OF SLAP WITH SUTRA.  IT ORIGINALLY READ:                  SLAP........790500
-C              WRITE(IUNIT,1010) ITER, ERR, AK, BK                       SLAP........790600
-            WRITE(IUNIT,1010) ITER, ERR                                  SLAP........790700
-         ENDIF                                                           SLAP........790800
-      ENDIF                                                              SLAP........790900
-      IF(ERR .LE. TOL) ISDCG = 1                                         SLAP........791000
-      RETURN                                                             SLAP........791100
-C.....THE NEXT TWO LINES OF CODE REFLECT MODIFICATIONS MADE DURING       SLAP........791200
-C        INTEGRATION FO SLAP WITH SUTRA.  THEY ORIGINALLY READ:          SLAP........791300
-C        1000 FORMAT(' Preconditioned Conjugate Gradient for ',          SLAP........791400
-C            $     'N, ITOL = ',I5, I5,                                  SLAP........791500
-C            $     /' ITER','   Error Estimate','            Alpha',     SLAP........791600
-C            $     '             Beta')                                  SLAP........791700
-C        1010 FORMAT(1X,I4,1X,D16.7,1X,D16.7,1X,D16.7)                   SLAP........791800
-1000  FORMAT(1X,6X,'Solver Iteration','   Error Estimate')               SLAP........791900
-1010  FORMAT(1X,6X,I16,1X,1PE16.7)                                       SLAP........792000
-C------------- LAST LINE OF ISDCG FOLLOWS ------------------------------ SLAP........792100
-      END                                                                SLAP........792200
-*DECK ISDGMR                                                             SLAP........792300
-      INTEGER FUNCTION ISDGMR (N, B, X, XL, NELT, IA, JA, A, ISYM,       SLAP........792400
-     +   MSOLVE, NMSL, ITOL, TOL, ITMAX, ITER, ERR, IUNIT, R, Z, DZ,     SLAP........792500
-     +   RWORK, IWORK, RNRM, BNRM, SB, SX, JSCAL, KMP, LGMR, MAXL,       SLAP........792600
-     +   MAXLP1, V, Q, SNORMW, PROD, R0NRM, HES, JPRE)                   SLAP........792700
-C***BEGIN PROLOGUE  ISDGMR                                               SLAP........792800
-C***SUBSIDIARY                                                           SLAP........792900
-C***PURPOSE  Generalized Minimum Residual Stop Test.                     SLAP........793000
-C            This routine calculates the stop test for the Generalized   SLAP........793100
-C            Minimum RESidual (GMRES) iteration scheme.  It returns a    SLAP........793200
-C            non-zero if the error estimate (the type of which is        SLAP........793300
-C            determined by ITOL) is less than the user specified         SLAP........793400
-C            tolerance TOL.                                              SLAP........793500
-C***LIBRARY   SLATEC (SLAP)                                              SLAP........793600
-C***CATEGORY  D2A4, D2B4                                                 SLAP........793700
-C***TYPE      DOUBLE PRECISION (ISSGMR-S, ISDGMR-D)                      SLAP........793800
-C***KEYWORDS  GMRES, LINEAR SYSTEM, SLAP, SPARSE, STOP TEST              SLAP........793900
-C***AUTHOR  Brown, Peter, (LLNL), pnbrown@llnl.gov                       SLAP........794000
-C           Hindmarsh, Alan, (LLNL), alanh@llnl.gov                      SLAP........794100
-C           Seager, Mark K., (LLNL), seager@llnl.gov                     SLAP........794200
-C             Lawrence Livermore National Laboratory                     SLAP........794300
-C             PO Box 808, L-60                                           SLAP........794400
-C             Livermore, CA 94550 (510) 423-3141                         SLAP........794500
-C***DESCRIPTION                                                          SLAP........794600
-C                                                                        SLAP........794700
-C *Usage:                                                                SLAP........794800
-C      INTEGER N, NELT, IA(NELT), JA(NELT), ISYM, NMSL, ITOL             SLAP........794900
-C      INTEGER ITMAX, ITER, IUNIT, IWORK(USER DEFINED), JSCAL            SLAP........795000
-C      INTEGER KMP, LGMR, MAXL, MAXLP1, JPRE                             SLAP........795100
-C      DOUBLE PRECISION B(N), X(N), XL(MAXL), A(NELT), TOL, ERR,         SLAP........795200
-C     $                 R(N), Z(N), DZ(N), RWORK(USER DEFINED),          SLAP........795300
-C     $                 RNRM, BNRM, SB(N), SX(N), V(N,MAXLP1),           SLAP........795400
-C     $                 Q(2*MAXL), SNORMW, PROD, R0NRM,                  SLAP........795500
-C     $                 HES(MAXLP1,MAXL)                                 SLAP........795600
-C      EXTERNAL MSOLVE                                                   SLAP........795700
-C                                                                        SLAP........795800
-C      IF (ISDGMR(N, B, X, XL, NELT, IA, JA, A, ISYM, MSOLVE,            SLAP........795900
-C     $     NMSL, ITOL, TOL, ITMAX, ITER, ERR, IUNIT, R, Z, DZ,          SLAP........796000
-C     $     RWORK, IWORK, RNRM, BNRM, SB, SX, JSCAL,                     SLAP........796100
-C     $     KMP, LGMR, MAXL, MAXLP1, V, Q, SNORMW, PROD, R0NRM,          SLAP........796200
-C     $     HES, JPRE) .NE. 0) THEN ITERATION DONE                       SLAP........796300
-C                                                                        SLAP........796400
-C *Arguments:                                                            SLAP........796500
-C N      :IN       Integer.                                              SLAP........796600
-C         Order of the Matrix.                                           SLAP........796700
-C B      :IN       Double Precision B(N).                                SLAP........796800
-C         Right-hand-side vector.                                        SLAP........796900
-C X      :IN       Double Precision X(N).                                SLAP........797000
-C         Approximate solution vector as of the last restart.            SLAP........797100
-C XL     :OUT      Double Precision XL(N)                                SLAP........797200
-C         An array of length N used to hold the approximate              SLAP........797300
-C         solution as of the current iteration.  Only computed by        SLAP........797400
-C         this routine when ITOL=11.                                     SLAP........797500
-C NELT   :IN       Integer.                                              SLAP........797600
-C         Number of Non-Zeros stored in A.                               SLAP........797700
-C IA     :IN       Integer IA(NELT).                                     SLAP........797800
-C JA     :IN       Integer JA(NELT).                                     SLAP........797900
-C A      :IN       Double Precision A(NELT).                             SLAP........798000
-C         These arrays contain the matrix data structure for A.          SLAP........798100
-C         It could take any form.  See "Description", in the DGMRES,     SLAP........798200
-C         DSLUGM and DSDGMR routines for more details.                   SLAP........798300
-C ISYM   :IN       Integer.                                              SLAP........798400
-C         Flag to indicate symmetric storage format.                     SLAP........798500
-C         If ISYM=0, all non-zero entries of the matrix are stored.      SLAP........798600
-C         If ISYM=1, the matrix is symmetric, and only the upper         SLAP........798700
-C         or lower triangle of the matrix is stored.                     SLAP........798800
-C MSOLVE :EXT      External.                                             SLAP........798900
-C         Name of a routine which solves a linear system Mz = r for  z   SLAP........799000
-C         given r with the preconditioning matrix M (M is supplied via   SLAP........799100
-C         RWORK and IWORK arrays.  The name of the MSOLVE routine must   SLAP........799200
-C         be declared external in the calling program.  The calling      SLAP........799300
-C         sequence to MSOLVE is:                                         SLAP........799400
-C             CALL MSOLVE(N, R, Z, NELT, IA, JA, A, ISYM, RWORK, IWORK)  SLAP........799500
-C         Where N is the number of unknowns, R is the right-hand side    SLAP........799600
-C         vector and Z is the solution upon return.  NELT, IA, JA, A and SLAP........799700
-C         ISYM are defined as above.  RWORK is a double precision array  SLAP........799800
-C         that can be used to pass necessary preconditioning information SLAP........799900
-C         and/or workspace to MSOLVE.  IWORK is an integer work array    SLAP........800000
-C         for the same purpose as RWORK.                                 SLAP........800100
-C NMSL   :INOUT    Integer.                                              SLAP........800200
-C         A counter for the number of calls to MSOLVE.                   SLAP........800300
-C ITOL   :IN       Integer.                                              SLAP........800400
-C         Flag to indicate the type of convergence criterion used.       SLAP........800500
-C         ITOL=0  Means the  iteration stops when the test described     SLAP........800600
-C                 below on  the  residual RL  is satisfied.  This is     SLAP........800700
-C                 the  "Natural Stopping Criteria" for this routine.     SLAP........800800
-C                 Other values  of   ITOL  cause  extra,   otherwise     SLAP........800900
-C                 unnecessary, computation per iteration and     are     SLAP........801000
-C                 therefore much less efficient.                         SLAP........801100
-C         ITOL=1  Means   the  iteration stops   when the first test     SLAP........801200
-C                 described below on  the residual RL  is satisfied,     SLAP........801300
-C                 and there  is either right  or  no preconditioning     SLAP........801400
-C                 being used.                                            SLAP........801500
-C         ITOL=2  Implies     that   the  user    is   using    left     SLAP........801600
-C                 preconditioning, and the second stopping criterion     SLAP........801700
-C                 below is used.                                         SLAP........801800
-C         ITOL=3  Means the  iteration stops   when  the  third test     SLAP........801900
-C                 described below on Minv*Residual is satisfied, and     SLAP........802000
-C                 there is either left  or no  preconditioning begin     SLAP........802100
-C                 used.                                                  SLAP........802200
-C         ITOL=11 is    often  useful  for   checking  and comparing     SLAP........802300
-C                 different routines.  For this case, the  user must     SLAP........802400
-C                 supply  the  "exact" solution or  a  very accurate     SLAP........802500
-C                 approximation (one with  an  error much less  than     SLAP........802600
-C                 TOL) through a common block,                           SLAP........802700
-C                     COMMON /DSLBLK/ SOLN( )                            SLAP........802800
-C                 If ITOL=11, iteration stops when the 2-norm of the     SLAP........802900
-C                 difference between the iterative approximation and     SLAP........803000
-C                 the user-supplied solution  divided by the  2-norm     SLAP........803100
-C                 of the  user-supplied solution  is  less than TOL.     SLAP........803200
-C                 Note that this requires  the  user to  set up  the     SLAP........803300
-C                 "COMMON     /DSLBLK/ SOLN(LENGTH)"  in the calling     SLAP........803400
-C                 routine.  The routine with this declaration should     SLAP........803500
-C                 be loaded before the stop test so that the correct     SLAP........803600
-C                 length is used by  the loader.  This procedure  is     SLAP........803700
-C                 not standard Fortran and may not work correctly on     SLAP........803800
-C                 your   system (although  it  has  worked  on every     SLAP........803900
-C                 system the authors have tried).  If ITOL is not 11     SLAP........804000
-C                 then this common block is indeed standard Fortran.     SLAP........804100
-C TOL    :IN       Double Precision.                                     SLAP........804200
-C         Convergence criterion, as described above.                     SLAP........804300
-C ITMAX  :IN       Integer.                                              SLAP........804400
-C         Maximum number of iterations.                                  SLAP........804500
-C ITER   :IN       Integer.                                              SLAP........804600
-C         The iteration for which to check for convergence.              SLAP........804700
-C ERR    :OUT      Double Precision.                                     SLAP........804800
-C         Error estimate of error in final approximate solution, as      SLAP........804900
-C         defined by ITOL.  Letting norm() denote the Euclidean          SLAP........805000
-C         norm, ERR is defined as follows..                              SLAP........805100
-C                                                                        SLAP........805200
-C         If ITOL=0, then ERR = norm(SB*(B-A*X(L)))/norm(SB*B),          SLAP........805300
-C                               for right or no preconditioning, and     SLAP........805400
-C                         ERR = norm(SB*(M-inverse)*(B-A*X(L)))/         SLAP........805500
-C                                norm(SB*(M-inverse)*B),                 SLAP........805600
-C                               for left preconditioning.                SLAP........805700
-C         If ITOL=1, then ERR = norm(SB*(B-A*X(L)))/norm(SB*B),          SLAP........805800
-C                               since right or no preconditioning        SLAP........805900
-C                               being used.                              SLAP........806000
-C         If ITOL=2, then ERR = norm(SB*(M-inverse)*(B-A*X(L)))/         SLAP........806100
-C                                norm(SB*(M-inverse)*B),                 SLAP........806200
-C                               since left preconditioning is being      SLAP........806300
-C                               used.                                    SLAP........806400
-C         If ITOL=3, then ERR =  Max  |(Minv*(B-A*X(L)))(i)/x(i)|        SLAP........806500
-C                               i=1,n                                    SLAP........806600
-C         If ITOL=11, then ERR = norm(SB*(X(L)-SOLN))/norm(SB*SOLN).     SLAP........806700
-C IUNIT  :IN       Integer.                                              SLAP........806800
-C         Unit number on which to write the error at each iteration,     SLAP........806900
-C         if this is desired for monitoring convergence.  If unit        SLAP........807000
-C         number is 0, no writing will occur.                            SLAP........807100
-C R      :INOUT    Double Precision R(N).                                SLAP........807200
-C         Work array used in calling routine.  It contains               SLAP........807300
-C         information necessary to compute the residual RL = B-A*XL.     SLAP........807400
-C Z      :WORK     Double Precision Z(N).                                SLAP........807500
-C         Workspace used to hold the pseudo-residual M z = r.            SLAP........807600
-C DZ     :WORK     Double Precision DZ(N).                               SLAP........807700
-C         Workspace used to hold temporary vector(s).                    SLAP........807800
-C RWORK  :WORK     Double Precision RWORK(USER DEFINED).                 SLAP........807900
-C         Double Precision array that can be used by MSOLVE.             SLAP........808000
-C IWORK  :WORK     Integer IWORK(USER DEFINED).                          SLAP........808100
-C         Integer array that can be used by MSOLVE.                      SLAP........808200
-C RNRM   :IN       Double Precision.                                     SLAP........808300
-C         Norm of the current residual.  Type of norm depends on ITOL.   SLAP........808400
-C BNRM   :IN       Double Precision.                                     SLAP........808500
-C         Norm of the right hand side.  Type of norm depends on ITOL.    SLAP........808600
-C SB     :IN       Double Precision SB(N).                               SLAP........808700
-C         Scaling vector for B.                                          SLAP........808800
-C SX     :IN       Double Precision SX(N).                               SLAP........808900
-C         Scaling vector for X.                                          SLAP........809000
-C JSCAL  :IN       Integer.                                              SLAP........809100
-C         Flag indicating if scaling arrays SB and SX are being          SLAP........809200
-C         used in the calling routine DPIGMR.                            SLAP........809300
-C         JSCAL=0 means SB and SX are not used and the                   SLAP........809400
-C                 algorithm will perform as if all                       SLAP........809500
-C                 SB(i) = 1 and SX(i) = 1.                               SLAP........809600
-C         JSCAL=1 means only SX is used, and the algorithm               SLAP........809700
-C                 performs as if all SB(i) = 1.                          SLAP........809800
-C         JSCAL=2 means only SB is used, and the algorithm               SLAP........809900
-C                 performs as if all SX(i) = 1.                          SLAP........810000
-C         JSCAL=3 means both SB and SX are used.                         SLAP........810100
-C KMP    :IN       Integer                                               SLAP........810200
-C         The number of previous vectors the new vector VNEW             SLAP........810300
-C         must be made orthogonal to.  (KMP .le. MAXL)                   SLAP........810400
-C LGMR   :IN       Integer                                               SLAP........810500
-C         The number of GMRES iterations performed on the current call   SLAP........810600
-C         to DPIGMR (i.e., # iterations since the last restart) and      SLAP........810700
-C         the current order of the upper Hessenberg                      SLAP........810800
-C         matrix HES.                                                    SLAP........810900
-C MAXL   :IN       Integer                                               SLAP........811000
-C         The maximum allowable order of the matrix H.                   SLAP........811100
-C MAXLP1 :IN       Integer                                               SLAP........811200
-C         MAXPL1 = MAXL + 1, used for dynamic dimensioning of HES.       SLAP........811300
-C V      :IN       Double Precision V(N,MAXLP1)                          SLAP........811400
-C         The N by (LGMR+1) array containing the LGMR                    SLAP........811500
-C         orthogonal vectors V(*,1) to V(*,LGMR).                        SLAP........811600
-C Q      :IN       Double Precision Q(2*MAXL)                            SLAP........811700
-C         A double precision array of length 2*MAXL containing the       SLAP........811800
-C         components of the Givens rotations used in the QR              SLAP........811900
-C         decomposition of HES.                                          SLAP........812000
-C SNORMW :IN       Double Precision                                      SLAP........812100
-C         A scalar containing the scaled norm of VNEW before it          SLAP........812200
-C         is renormalized in DPIGMR.                                     SLAP........812300
-C PROD   :IN       Double Precision                                      SLAP........812400
-C         The product s1*s2*...*sl = the product of the sines of the     SLAP........812500
-C         Givens rotations used in the QR factorization of the           SLAP........812600
-C         Hessenberg matrix HES.                                         SLAP........812700
-C R0NRM  :IN       Double Precision                                      SLAP........812800
-C         The scaled norm of initial residual R0.                        SLAP........812900
-C HES    :IN       Double Precision HES(MAXLP1,MAXL)                     SLAP........813000
-C         The upper triangular factor of the QR decomposition            SLAP........813100
-C         of the (LGMR+1) by LGMR upper Hessenberg matrix whose          SLAP........813200
-C         entries are the scaled inner-products of A*V(*,I)              SLAP........813300
-C         and V(*,K).                                                    SLAP........813400
-C JPRE   :IN       Integer                                               SLAP........813500
-C         Preconditioner type flag.                                      SLAP........813600
-C         (See description of IGWK(4) in DGMRES.)                        SLAP........813700
-C                                                                        SLAP........813800
-C *Description                                                           SLAP........813900
-C       When using the GMRES solver,  the preferred value  for ITOL      SLAP........814000
-C       is 0.  This is due to the fact that when ITOL=0 the norm of      SLAP........814100
-C       the residual required in the stopping test is  obtained for      SLAP........814200
-C       free, since this value is already  calculated  in the GMRES      SLAP........814300
-C       algorithm.   The  variable  RNRM contains the   appropriate      SLAP........814400
-C       norm, which is equal to norm(SB*(RL - A*XL))  when right or      SLAP........814500
-C       no   preconditioning is  being  performed,   and equal   to      SLAP........814600
-C       norm(SB*Minv*(RL - A*XL))  when using left preconditioning.      SLAP........814700
-C       Here, norm() is the Euclidean norm.  Nonzero values of ITOL      SLAP........814800
-C       require  additional work  to  calculate the  actual  scaled      SLAP........814900
-C       residual  or its scaled/preconditioned  form,  and/or   the      SLAP........815000
-C       approximate solution XL.  Hence, these values of  ITOL will      SLAP........815100
-C       not be as efficient as ITOL=0.                                   SLAP........815200
-C                                                                        SLAP........815300
-C *Cautions:                                                             SLAP........815400
-C     This routine will attempt to write to the Fortran logical output   SLAP........815500
-C     unit IUNIT, if IUNIT .ne. 0.  Thus, the user must make sure that   SLAP........815600
-C     this logical unit is attached to a file or terminal before calling SLAP........815700
-C     this routine with a non-zero value for IUNIT.  This routine does   SLAP........815800
-C     not check for the validity of a non-zero IUNIT unit number.        SLAP........815900
-C                                                                        SLAP........816000
-C     This routine does not verify that ITOL has a valid value.          SLAP........816100
-C     The calling routine should make such a test before calling         SLAP........816200
-C     ISDGMR, as is done in DGMRES.                                      SLAP........816300
-C                                                                        SLAP........816400
-C***SEE ALSO  DGMRES                                                     SLAP........816500
-C***ROUTINES CALLED  D1MACH, DCOPY, DNRM2, DRLCAL, DSCAL, DXLCAL         SLAP........816600
-C***COMMON BLOCKS    DSLBLK                                              SLAP........816700
-C***REVISION HISTORY  (YYMMDD)                                           SLAP........816800
-C   890404  DATE WRITTEN                                                 SLAP........816900
-C   890404  Previous REVISION DATE                                       SLAP........817000
-C   890915  Made changes requested at July 1989 CML Meeting.  (MKS)      SLAP........817100
-C   890922  Numerous changes to prologue to make closer to SLATEC        SLAP........817200
-C           standard.  (FNF)                                             SLAP........817300
-C   890929  Numerous changes to reduce SP/DP differences.  (FNF)         SLAP........817400
-C   910411  Prologue converted to Version 4.0 format.  (BAB)             SLAP........817500
-C   910502  Corrected conversion errors, etc.  (FNF)                     SLAP........817600
-C   910502  Removed MSOLVE from ROUTINES CALLED list.  (FNF)             SLAP........817700
-C   910506  Made subsidiary to DGMRES.  (FNF)                            SLAP........817800
-C   920407  COMMON BLOCK renamed DSLBLK.  (WRB)                          SLAP........817900
-C   920511  Added complete declaration section.  (WRB)                   SLAP........818000
-C   921026  Corrected D to E in output format.  (FNF)                    SLAP........818100
-C   921113  Corrected C***CATEGORY line.  (FNF)                          SLAP........818200
-C***END PROLOGUE  ISDGMR                                                 SLAP........818300
-C     .. Scalar Arguments ..                                             SLAP........818400
-      DOUBLE PRECISION BNRM, ERR, PROD, R0NRM, RNRM, SNORMW, TOL         SLAP........818500
-      INTEGER ISYM, ITER, ITMAX, ITOL, IUNIT, JPRE, JSCAL, KMP, LGMR,    SLAP........818600
-     +        MAXL, MAXLP1, N, NELT, NMSL                                SLAP........818700
-C     .. Array Arguments ..                                              SLAP........818800
-      DOUBLE PRECISION A(*), B(*), DZ(*), HES(MAXLP1, MAXL), Q(*), R(*), SLAP........818900
-     +                 RWORK(*), SB(*), SX(*), V(N,*), X(*), XL(*), Z(*) SLAP........819000
-      INTEGER IA(*), IWORK(*), JA(*)                                     SLAP........819100
-C     .. Subroutine Arguments ..                                         SLAP........819200
-      EXTERNAL MSOLVE                                                    SLAP........819300
-C     .. Arrays in Common ..                                             SLAP........819400
-      DOUBLE PRECISION SOLN(1)                                           SLAP........819500
-C     .. Local Scalars ..                                                SLAP........819600
-      DOUBLE PRECISION DXNRM, FUZZ, RAT, RATMAX, SOLNRM, TEM             SLAP........819700
-      INTEGER I, IELMAX                                                  SLAP........819800
-C     .. External Functions ..                                           SLAP........819900
-      DOUBLE PRECISION D1MACH, DNRM2                                     SLAP........820000
-      EXTERNAL D1MACH, DNRM2                                             SLAP........820100
-C     .. External Subroutines ..                                         SLAP........820200
-      EXTERNAL DCOPY, DRLCAL, DSCAL, DXLCAL                              SLAP........820300
-C     .. Intrinsic Functions ..                                          SLAP........820400
-      INTRINSIC ABS, MAX, SQRT                                           SLAP........820500
-C     .. Common blocks ..                                                SLAP........820600
-      COMMON /DSLBLK/ SOLN                                               SLAP........820700
-C     .. Save statement ..                                               SLAP........820800
-      SAVE SOLNRM                                                        SLAP........820900
-C***FIRST EXECUTABLE STATEMENT  ISDGMR                                   SLAP........821000
-      ISDGMR = 0                                                         SLAP........821100
-      IF ( ITOL.EQ.0 ) THEN                                              SLAP........821200
-C                                                                        SLAP........821300
-C       Use input from DPIGMR to determine if stop conditions are met.   SLAP........821400
-C                                                                        SLAP........821500
-         ERR = RNRM/BNRM                                                 SLAP........821600
-      ENDIF                                                              SLAP........821700
-      IF ( (ITOL.GT.0) .AND. (ITOL.LE.3) ) THEN                          SLAP........821800
-C                                                                        SLAP........821900
-C       Use DRLCAL to calculate the scaled residual vector.              SLAP........822000
-C       Store answer in R.                                               SLAP........822100
+C...........THE NEXT LINE OF CODE REFLECTS A BUG FIX MADE DURING         SLAP........787800
+C              INTEGRATION OF SLAP WITH SUTRA.  IT ORIGINALLY READ:      SLAP........787900
+C            CALL MSOLVE(N, R, Z, NELT, IA, JA, A, ISYM, RWORK, IWORK)   SLAP........788000
+            CALL MSOLVE(N, R, DZ, NELT, IA, JA, A, ISYM, RWORK, IWORK)   SLAP........788100
+            BNRM = DNRM2(N, DZ, 1)                                       SLAP........788200
+         ENDIF                                                           SLAP........788300
+         ERR = DNRM2(N, Z, 1)/BNRM                                       SLAP........788400
+      ELSE IF( ITOL.EQ.11 ) THEN                                         SLAP........788500
+C         err = ||x-TrueSolution||/||TrueSolution|| (2-Norms).           SLAP........788600
+         IF(ITER .EQ. 0) SOLNRM = DNRM2(N, SOLN, 1)                      SLAP........788700
+         DO 10 I = 1, N                                                  SLAP........788800
+            DZ(I) = X(I) - SOLN(I)                                       SLAP........788900
+ 10      CONTINUE                                                        SLAP........789000
+         ERR = DNRM2(N, DZ, 1)/SOLNRM                                    SLAP........789100
+      ELSE                                                               SLAP........789200
+C                                                                        SLAP........789300
+C         If we get here ITOL is not one of the acceptable values.       SLAP........789400
+         ERR = D1MACH(2)                                                 SLAP........789500
+         IERR = 3                                                        SLAP........789600
+      ENDIF                                                              SLAP........789700
+C                                                                        SLAP........789800
+      IF(IUNIT .NE. 0) THEN                                              SLAP........789900
+         IF( ITER.EQ.0 ) THEN                                            SLAP........790000
+C...........THE NEXT LINE OF CODE WAS MODIFIED DURING INTEGRATION        SLAP........790100
+C              OF SLAP WITH SUTRA.  IT ORIGINALLY READ:                  SLAP........790200
+C              WRITE(IUNIT,1000) N, ITOL                                 SLAP........790300
+            WRITE(IUNIT,1000)                                            SLAP........790400
+            WRITE(IUNIT,1010) ITER, ERR                                  SLAP........790500
+         ELSE                                                            SLAP........790600
+C...........THE NEXT LINE OF CODE WAS MODIFIED DURING INTEGRATION        SLAP........790700
+C              OF SLAP WITH SUTRA.  IT ORIGINALLY READ:                  SLAP........790800
+C              WRITE(IUNIT,1010) ITER, ERR, AK, BK                       SLAP........790900
+            WRITE(IUNIT,1010) ITER, ERR                                  SLAP........791000
+         ENDIF                                                           SLAP........791100
+      ENDIF                                                              SLAP........791200
+      IF(ERR .LE. TOL) ISDCG = 1                                         SLAP........791300
+      RETURN                                                             SLAP........791400
+C.....THE NEXT TWO LINES OF CODE REFLECT MODIFICATIONS MADE DURING       SLAP........791500
+C        INTEGRATION OF SLAP WITH SUTRA.  THEY ORIGINALLY READ:          SLAP........791600
+C        1000 FORMAT(' Preconditioned Conjugate Gradient for ',          SLAP........791700
+C            $     'N, ITOL = ',I5, I5,                                  SLAP........791800
+C            $     /' ITER','   Error Estimate','            Alpha',     SLAP........791900
+C            $     '             Beta')                                  SLAP........792000
+C        1010 FORMAT(1X,I4,1X,D16.7,1X,D16.7,1X,D16.7)                   SLAP........792100
+1000  FORMAT(1X,6X,'Solver Iteration','   Error Estimate')               SLAP........792200
+1010  FORMAT(1X,6X,I16,1X,1PE16.7)                                       SLAP........792300
+C------------- LAST LINE OF ISDCG FOLLOWS ------------------------------ SLAP........792400
+      END                                                                SLAP........792500
+*DECK ISDGMR                                                             SLAP........792600
+      INTEGER FUNCTION ISDGMR (N, B, X, XL, NELT, IA, JA, A, ISYM,       SLAP........792700
+     +   MSOLVE, NMSL, ITOL, TOL, ITMAX, ITER, ERR, IUNIT, R, Z, DZ,     SLAP........792800
+     +   RWORK, IWORK, RNRM, BNRM, SB, SX, JSCAL, KMP, LGMR, MAXL,       SLAP........792900
+     +   MAXLP1, V, Q, SNORMW, PROD, R0NRM, HES, JPRE)                   SLAP........793000
+C***BEGIN PROLOGUE  ISDGMR                                               SLAP........793100
+C***SUBSIDIARY                                                           SLAP........793200
+C***PURPOSE  Generalized Minimum Residual Stop Test.                     SLAP........793300
+C            This routine calculates the stop test for the Generalized   SLAP........793400
+C            Minimum RESidual (GMRES) iteration scheme.  It returns a    SLAP........793500
+C            non-zero if the error estimate (the type of which is        SLAP........793600
+C            determined by ITOL) is less than the user specified         SLAP........793700
+C            tolerance TOL.                                              SLAP........793800
+C***LIBRARY   SLATEC (SLAP)                                              SLAP........793900
+C***CATEGORY  D2A4, D2B4                                                 SLAP........794000
+C***TYPE      DOUBLE PRECISION (ISSGMR-S, ISDGMR-D)                      SLAP........794100
+C***KEYWORDS  GMRES, LINEAR SYSTEM, SLAP, SPARSE, STOP TEST              SLAP........794200
+C***AUTHOR  Brown, Peter, (LLNL), pnbrown@llnl.gov                       SLAP........794300
+C           Hindmarsh, Alan, (LLNL), alanh@llnl.gov                      SLAP........794400
+C           Seager, Mark K., (LLNL), seager@llnl.gov                     SLAP........794500
+C             Lawrence Livermore National Laboratory                     SLAP........794600
+C             PO Box 808, L-60                                           SLAP........794700
+C             Livermore, CA 94550 (510) 423-3141                         SLAP........794800
+C***DESCRIPTION                                                          SLAP........794900
+C                                                                        SLAP........795000
+C *Usage:                                                                SLAP........795100
+C      INTEGER N, NELT, IA(NELT), JA(NELT), ISYM, NMSL, ITOL             SLAP........795200
+C      INTEGER ITMAX, ITER, IUNIT, IWORK(USER DEFINED), JSCAL            SLAP........795300
+C      INTEGER KMP, LGMR, MAXL, MAXLP1, JPRE                             SLAP........795400
+C      DOUBLE PRECISION B(N), X(N), XL(MAXL), A(NELT), TOL, ERR,         SLAP........795500
+C     $                 R(N), Z(N), DZ(N), RWORK(USER DEFINED),          SLAP........795600
+C     $                 RNRM, BNRM, SB(N), SX(N), V(N,MAXLP1),           SLAP........795700
+C     $                 Q(2*MAXL), SNORMW, PROD, R0NRM,                  SLAP........795800
+C     $                 HES(MAXLP1,MAXL)                                 SLAP........795900
+C      EXTERNAL MSOLVE                                                   SLAP........796000
+C                                                                        SLAP........796100
+C      IF (ISDGMR(N, B, X, XL, NELT, IA, JA, A, ISYM, MSOLVE,            SLAP........796200
+C     $     NMSL, ITOL, TOL, ITMAX, ITER, ERR, IUNIT, R, Z, DZ,          SLAP........796300
+C     $     RWORK, IWORK, RNRM, BNRM, SB, SX, JSCAL,                     SLAP........796400
+C     $     KMP, LGMR, MAXL, MAXLP1, V, Q, SNORMW, PROD, R0NRM,          SLAP........796500
+C     $     HES, JPRE) .NE. 0) THEN ITERATION DONE                       SLAP........796600
+C                                                                        SLAP........796700
+C *Arguments:                                                            SLAP........796800
+C N      :IN       Integer.                                              SLAP........796900
+C         Order of the Matrix.                                           SLAP........797000
+C B      :IN       Double Precision B(N).                                SLAP........797100
+C         Right-hand-side vector.                                        SLAP........797200
+C X      :IN       Double Precision X(N).                                SLAP........797300
+C         Approximate solution vector as of the last restart.            SLAP........797400
+C XL     :OUT      Double Precision XL(N)                                SLAP........797500
+C         An array of length N used to hold the approximate              SLAP........797600
+C         solution as of the current iteration.  Only computed by        SLAP........797700
+C         this routine when ITOL=11.                                     SLAP........797800
+C NELT   :IN       Integer.                                              SLAP........797900
+C         Number of Non-Zeros stored in A.                               SLAP........798000
+C IA     :IN       Integer IA(NELT).                                     SLAP........798100
+C JA     :IN       Integer JA(NELT).                                     SLAP........798200
+C A      :IN       Double Precision A(NELT).                             SLAP........798300
+C         These arrays contain the matrix data structure for A.          SLAP........798400
+C         It could take any form.  See "Description", in the DGMRES,     SLAP........798500
+C         DSLUGM and DSDGMR routines for more details.                   SLAP........798600
+C ISYM   :IN       Integer.                                              SLAP........798700
+C         Flag to indicate symmetric storage format.                     SLAP........798800
+C         If ISYM=0, all non-zero entries of the matrix are stored.      SLAP........798900
+C         If ISYM=1, the matrix is symmetric, and only the upper         SLAP........799000
+C         or lower triangle of the matrix is stored.                     SLAP........799100
+C MSOLVE :EXT      External.                                             SLAP........799200
+C         Name of a routine which solves a linear system Mz = r for  z   SLAP........799300
+C         given r with the preconditioning matrix M (M is supplied via   SLAP........799400
+C         RWORK and IWORK arrays.  The name of the MSOLVE routine must   SLAP........799500
+C         be declared external in the calling program.  The calling      SLAP........799600
+C         sequence to MSOLVE is:                                         SLAP........799700
+C             CALL MSOLVE(N, R, Z, NELT, IA, JA, A, ISYM, RWORK, IWORK)  SLAP........799800
+C         Where N is the number of unknowns, R is the right-hand side    SLAP........799900
+C         vector and Z is the solution upon return.  NELT, IA, JA, A and SLAP........800000
+C         ISYM are defined as above.  RWORK is a double precision array  SLAP........800100
+C         that can be used to pass necessary preconditioning information SLAP........800200
+C         and/or workspace to MSOLVE.  IWORK is an integer work array    SLAP........800300
+C         for the same purpose as RWORK.                                 SLAP........800400
+C NMSL   :INOUT    Integer.                                              SLAP........800500
+C         A counter for the number of calls to MSOLVE.                   SLAP........800600
+C ITOL   :IN       Integer.                                              SLAP........800700
+C         Flag to indicate the type of convergence criterion used.       SLAP........800800
+C         ITOL=0  Means the  iteration stops when the test described     SLAP........800900
+C                 below on  the  residual RL  is satisfied.  This is     SLAP........801000
+C                 the  "Natural Stopping Criteria" for this routine.     SLAP........801100
+C                 Other values  of   ITOL  cause  extra,   otherwise     SLAP........801200
+C                 unnecessary, computation per iteration and     are     SLAP........801300
+C                 therefore much less efficient.                         SLAP........801400
+C         ITOL=1  Means   the  iteration stops   when the first test     SLAP........801500
+C                 described below on  the residual RL  is satisfied,     SLAP........801600
+C                 and there  is either right  or  no preconditioning     SLAP........801700
+C                 being used.                                            SLAP........801800
+C         ITOL=2  Implies     that   the  user    is   using    left     SLAP........801900
+C                 preconditioning, and the second stopping criterion     SLAP........802000
+C                 below is used.                                         SLAP........802100
+C         ITOL=3  Means the  iteration stops   when  the  third test     SLAP........802200
+C                 described below on Minv*Residual is satisfied, and     SLAP........802300
+C                 there is either left  or no  preconditioning begin     SLAP........802400
+C                 used.                                                  SLAP........802500
+C         ITOL=11 is    often  useful  for   checking  and comparing     SLAP........802600
+C                 different routines.  For this case, the  user must     SLAP........802700
+C                 supply  the  "exact" solution or  a  very accurate     SLAP........802800
+C                 approximation (one with  an  error much less  than     SLAP........802900
+C                 TOL) through a common block,                           SLAP........803000
+C                     COMMON /DSLBLK/ SOLN( )                            SLAP........803100
+C                 If ITOL=11, iteration stops when the 2-norm of the     SLAP........803200
+C                 difference between the iterative approximation and     SLAP........803300
+C                 the user-supplied solution  divided by the  2-norm     SLAP........803400
+C                 of the  user-supplied solution  is  less than TOL.     SLAP........803500
+C                 Note that this requires  the  user to  set up  the     SLAP........803600
+C                 "COMMON     /DSLBLK/ SOLN(LENGTH)"  in the calling     SLAP........803700
+C                 routine.  The routine with this declaration should     SLAP........803800
+C                 be loaded before the stop test so that the correct     SLAP........803900
+C                 length is used by  the loader.  This procedure  is     SLAP........804000
+C                 not standard Fortran and may not work correctly on     SLAP........804100
+C                 your   system (although  it  has  worked  on every     SLAP........804200
+C                 system the authors have tried).  If ITOL is not 11     SLAP........804300
+C                 then this common block is indeed standard Fortran.     SLAP........804400
+C TOL    :IN       Double Precision.                                     SLAP........804500
+C         Convergence criterion, as described above.                     SLAP........804600
+C ITMAX  :IN       Integer.                                              SLAP........804700
+C         Maximum number of iterations.                                  SLAP........804800
+C ITER   :IN       Integer.                                              SLAP........804900
+C         The iteration for which to check for convergence.              SLAP........805000
+C ERR    :OUT      Double Precision.                                     SLAP........805100
+C         Error estimate of error in final approximate solution, as      SLAP........805200
+C         defined by ITOL.  Letting norm() denote the Euclidean          SLAP........805300
+C         norm, ERR is defined as follows..                              SLAP........805400
+C                                                                        SLAP........805500
+C         If ITOL=0, then ERR = norm(SB*(B-A*X(L)))/norm(SB*B),          SLAP........805600
+C                               for right or no preconditioning, and     SLAP........805700
+C                         ERR = norm(SB*(M-inverse)*(B-A*X(L)))/         SLAP........805800
+C                                norm(SB*(M-inverse)*B),                 SLAP........805900
+C                               for left preconditioning.                SLAP........806000
+C         If ITOL=1, then ERR = norm(SB*(B-A*X(L)))/norm(SB*B),          SLAP........806100
+C                               since right or no preconditioning        SLAP........806200
+C                               being used.                              SLAP........806300
+C         If ITOL=2, then ERR = norm(SB*(M-inverse)*(B-A*X(L)))/         SLAP........806400
+C                                norm(SB*(M-inverse)*B),                 SLAP........806500
+C                               since left preconditioning is being      SLAP........806600
+C                               used.                                    SLAP........806700
+C         If ITOL=3, then ERR =  Max  |(Minv*(B-A*X(L)))(i)/x(i)|        SLAP........806800
+C                               i=1,n                                    SLAP........806900
+C         If ITOL=11, then ERR = norm(SB*(X(L)-SOLN))/norm(SB*SOLN).     SLAP........807000
+C IUNIT  :IN       Integer.                                              SLAP........807100
+C         Unit number on which to write the error at each iteration,     SLAP........807200
+C         if this is desired for monitoring convergence.  If unit        SLAP........807300
+C         number is 0, no writing will occur.                            SLAP........807400
+C R      :INOUT    Double Precision R(N).                                SLAP........807500
+C         Work array used in calling routine.  It contains               SLAP........807600
+C         information necessary to compute the residual RL = B-A*XL.     SLAP........807700
+C Z      :WORK     Double Precision Z(N).                                SLAP........807800
+C         Workspace used to hold the pseudo-residual M z = r.            SLAP........807900
+C DZ     :WORK     Double Precision DZ(N).                               SLAP........808000
+C         Workspace used to hold temporary vector(s).                    SLAP........808100
+C RWORK  :WORK     Double Precision RWORK(USER DEFINED).                 SLAP........808200
+C         Double Precision array that can be used by MSOLVE.             SLAP........808300
+C IWORK  :WORK     Integer IWORK(USER DEFINED).                          SLAP........808400
+C         Integer array that can be used by MSOLVE.                      SLAP........808500
+C RNRM   :IN       Double Precision.                                     SLAP........808600
+C         Norm of the current residual.  Type of norm depends on ITOL.   SLAP........808700
+C BNRM   :IN       Double Precision.                                     SLAP........808800
+C         Norm of the right hand side.  Type of norm depends on ITOL.    SLAP........808900
+C SB     :IN       Double Precision SB(N).                               SLAP........809000
+C         Scaling vector for B.                                          SLAP........809100
+C SX     :IN       Double Precision SX(N).                               SLAP........809200
+C         Scaling vector for X.                                          SLAP........809300
+C JSCAL  :IN       Integer.                                              SLAP........809400
+C         Flag indicating if scaling arrays SB and SX are being          SLAP........809500
+C         used in the calling routine DPIGMR.                            SLAP........809600
+C         JSCAL=0 means SB and SX are not used and the                   SLAP........809700
+C                 algorithm will perform as if all                       SLAP........809800
+C                 SB(i) = 1 and SX(i) = 1.                               SLAP........809900
+C         JSCAL=1 means only SX is used, and the algorithm               SLAP........810000
+C                 performs as if all SB(i) = 1.                          SLAP........810100
+C         JSCAL=2 means only SB is used, and the algorithm               SLAP........810200
+C                 performs as if all SX(i) = 1.                          SLAP........810300
+C         JSCAL=3 means both SB and SX are used.                         SLAP........810400
+C KMP    :IN       Integer                                               SLAP........810500
+C         The number of previous vectors the new vector VNEW             SLAP........810600
+C         must be made orthogonal to.  (KMP .le. MAXL)                   SLAP........810700
+C LGMR   :IN       Integer                                               SLAP........810800
+C         The number of GMRES iterations performed on the current call   SLAP........810900
+C         to DPIGMR (i.e., # iterations since the last restart) and      SLAP........811000
+C         the current order of the upper Hessenberg                      SLAP........811100
+C         matrix HES.                                                    SLAP........811200
+C MAXL   :IN       Integer                                               SLAP........811300
+C         The maximum allowable order of the matrix H.                   SLAP........811400
+C MAXLP1 :IN       Integer                                               SLAP........811500
+C         MAXPL1 = MAXL + 1, used for dynamic dimensioning of HES.       SLAP........811600
+C V      :IN       Double Precision V(N,MAXLP1)                          SLAP........811700
+C         The N by (LGMR+1) array containing the LGMR                    SLAP........811800
+C         orthogonal vectors V(*,1) to V(*,LGMR).                        SLAP........811900
+C Q      :IN       Double Precision Q(2*MAXL)                            SLAP........812000
+C         A double precision array of length 2*MAXL containing the       SLAP........812100
+C         components of the Givens rotations used in the QR              SLAP........812200
+C         decomposition of HES.                                          SLAP........812300
+C SNORMW :IN       Double Precision                                      SLAP........812400
+C         A scalar containing the scaled norm of VNEW before it          SLAP........812500
+C         is renormalized in DPIGMR.                                     SLAP........812600
+C PROD   :IN       Double Precision                                      SLAP........812700
+C         The product s1*s2*...*sl = the product of the sines of the     SLAP........812800
+C         Givens rotations used in the QR factorization of the           SLAP........812900
+C         Hessenberg matrix HES.                                         SLAP........813000
+C R0NRM  :IN       Double Precision                                      SLAP........813100
+C         The scaled norm of initial residual R0.                        SLAP........813200
+C HES    :IN       Double Precision HES(MAXLP1,MAXL)                     SLAP........813300
+C         The upper triangular factor of the QR decomposition            SLAP........813400
+C         of the (LGMR+1) by LGMR upper Hessenberg matrix whose          SLAP........813500
+C         entries are the scaled inner-products of A*V(*,I)              SLAP........813600
+C         and V(*,K).                                                    SLAP........813700
+C JPRE   :IN       Integer                                               SLAP........813800
+C         Preconditioner type flag.                                      SLAP........813900
+C         (See description of IGWK(4) in DGMRES.)                        SLAP........814000
+C                                                                        SLAP........814100
+C *Description                                                           SLAP........814200
+C       When using the GMRES solver,  the preferred value  for ITOL      SLAP........814300
+C       is 0.  This is due to the fact that when ITOL=0 the norm of      SLAP........814400
+C       the residual required in the stopping test is  obtained for      SLAP........814500
+C       free, since this value is already  calculated  in the GMRES      SLAP........814600
+C       algorithm.   The  variable  RNRM contains the   appropriate      SLAP........814700
+C       norm, which is equal to norm(SB*(RL - A*XL))  when right or      SLAP........814800
+C       no   preconditioning is  being  performed,   and equal   to      SLAP........814900
+C       norm(SB*Minv*(RL - A*XL))  when using left preconditioning.      SLAP........815000
+C       Here, norm() is the Euclidean norm.  Nonzero values of ITOL      SLAP........815100
+C       require  additional work  to  calculate the  actual  scaled      SLAP........815200
+C       residual  or its scaled/preconditioned  form,  and/or   the      SLAP........815300
+C       approximate solution XL.  Hence, these values of  ITOL will      SLAP........815400
+C       not be as efficient as ITOL=0.                                   SLAP........815500
+C                                                                        SLAP........815600
+C *Cautions:                                                             SLAP........815700
+C     This routine will attempt to write to the Fortran logical output   SLAP........815800
+C     unit IUNIT, if IUNIT .ne. 0.  Thus, the user must make sure that   SLAP........815900
+C     this logical unit is attached to a file or terminal before calling SLAP........816000
+C     this routine with a non-zero value for IUNIT.  This routine does   SLAP........816100
+C     not check for the validity of a non-zero IUNIT unit number.        SLAP........816200
+C                                                                        SLAP........816300
+C     This routine does not verify that ITOL has a valid value.          SLAP........816400
+C     The calling routine should make such a test before calling         SLAP........816500
+C     ISDGMR, as is done in DGMRES.                                      SLAP........816600
+C                                                                        SLAP........816700
+C***SEE ALSO  DGMRES                                                     SLAP........816800
+C***ROUTINES CALLED  D1MACH, DCOPY, DNRM2, DRLCAL, DSCAL, DXLCAL         SLAP........816900
+C***COMMON BLOCKS    DSLBLK                                              SLAP........817000
+C***REVISION HISTORY  (YYMMDD)                                           SLAP........817100
+C   890404  DATE WRITTEN                                                 SLAP........817200
+C   890404  Previous REVISION DATE                                       SLAP........817300
+C   890915  Made changes requested at July 1989 CML Meeting.  (MKS)      SLAP........817400
+C   890922  Numerous changes to prologue to make closer to SLATEC        SLAP........817500
+C           standard.  (FNF)                                             SLAP........817600
+C   890929  Numerous changes to reduce SP/DP differences.  (FNF)         SLAP........817700
+C   910411  Prologue converted to Version 4.0 format.  (BAB)             SLAP........817800
+C   910502  Corrected conversion errors, etc.  (FNF)                     SLAP........817900
+C   910502  Removed MSOLVE from ROUTINES CALLED list.  (FNF)             SLAP........818000
+C   910506  Made subsidiary to DGMRES.  (FNF)                            SLAP........818100
+C   920407  COMMON BLOCK renamed DSLBLK.  (WRB)                          SLAP........818200
+C   920511  Added complete declaration section.  (WRB)                   SLAP........818300
+C   921026  Corrected D to E in output format.  (FNF)                    SLAP........818400
+C   921113  Corrected C***CATEGORY line.  (FNF)                          SLAP........818500
+C***END PROLOGUE  ISDGMR                                                 SLAP........818600
+C     .. Scalar Arguments ..                                             SLAP........818700
+      DOUBLE PRECISION BNRM, ERR, PROD, R0NRM, RNRM, SNORMW, TOL         SLAP........818800
+      INTEGER ISYM, ITER, ITMAX, ITOL, IUNIT, JPRE, JSCAL, KMP, LGMR,    SLAP........818900
+     +        MAXL, MAXLP1, N, NELT, NMSL                                SLAP........819000
+C     .. Array Arguments ..                                              SLAP........819100
+      DOUBLE PRECISION A(*), B(*), DZ(*), HES(MAXLP1, MAXL), Q(*), R(*), SLAP........819200
+     +                 RWORK(*), SB(*), SX(*), V(N,*), X(*), XL(*), Z(*) SLAP........819300
+      INTEGER IA(*), IWORK(*), JA(*)                                     SLAP........819400
+C     .. Subroutine Arguments ..                                         SLAP........819500
+      EXTERNAL MSOLVE                                                    SLAP........819600
+C     .. Arrays in Common ..                                             SLAP........819700
+      DOUBLE PRECISION SOLN(1)                                           SLAP........819800
+C     .. Local Scalars ..                                                SLAP........819900
+      DOUBLE PRECISION DXNRM, FUZZ, RAT, RATMAX, SOLNRM, TEM             SLAP........820000
+      INTEGER I, IELMAX                                                  SLAP........820100
+C     .. External Functions ..                                           SLAP........820200
+      DOUBLE PRECISION D1MACH, DNRM2                                     SLAP........820300
+      EXTERNAL D1MACH, DNRM2                                             SLAP........820400
+C     .. External Subroutines ..                                         SLAP........820500
+      EXTERNAL DCOPY, DRLCAL, DSCAL, DXLCAL                              SLAP........820600
+C     .. Intrinsic Functions ..                                          SLAP........820700
+      INTRINSIC ABS, MAX, SQRT                                           SLAP........820800
+C     .. Common blocks ..                                                SLAP........820900
+      COMMON /DSLBLK/ SOLN                                               SLAP........821000
+C     .. Save statement ..                                               SLAP........821100
+      SAVE SOLNRM                                                        SLAP........821200
+C***FIRST EXECUTABLE STATEMENT  ISDGMR                                   SLAP........821300
+      ISDGMR = 0                                                         SLAP........821400
+      IF ( ITOL.EQ.0 ) THEN                                              SLAP........821500
+C                                                                        SLAP........821600
+C       Use input from DPIGMR to determine if stop conditions are met.   SLAP........821700
+C                                                                        SLAP........821800
+         ERR = RNRM/BNRM                                                 SLAP........821900
+      ENDIF                                                              SLAP........822000
+      IF ( (ITOL.GT.0) .AND. (ITOL.LE.3) ) THEN                          SLAP........822100
 C                                                                        SLAP........822200
-         IF ( LGMR.NE.0 ) CALL DRLCAL(N, KMP, LGMR, MAXL, V, Q, R,       SLAP........822300
-     $                                SNORMW, PROD, R0NRM)               SLAP........822400
-         IF ( ITOL.LE.2 ) THEN                                           SLAP........822500
-C         err = ||Residual||/||RightHandSide||(2-Norms).                 SLAP........822600
-            ERR = DNRM2(N, R, 1)/BNRM                                    SLAP........822700
-C                                                                        SLAP........822800
-C         Unscale R by R0NRM*PROD when KMP < MAXL.                       SLAP........822900
-C                                                                        SLAP........823000
-            IF ( (KMP.LT.MAXL) .AND. (LGMR.NE.0) ) THEN                  SLAP........823100
-               TEM = 1.0D0/(R0NRM*PROD)                                  SLAP........823200
-               CALL DSCAL(N, TEM, R, 1)                                  SLAP........823300
-            ENDIF                                                        SLAP........823400
-         ELSEIF ( ITOL.EQ.3 ) THEN                                       SLAP........823500
-C         err = Max |(Minv*Residual)(i)/x(i)|                            SLAP........823600
-C         When JPRE .lt. 0, R already contains Minv*Residual.            SLAP........823700
-            IF ( JPRE.GT.0 ) THEN                                        SLAP........823800
-               CALL MSOLVE(N, R, DZ, NELT, IA, JA, A, ISYM, RWORK,       SLAP........823900
-     $              IWORK)                                               SLAP........824000
-               NMSL = NMSL + 1                                           SLAP........824100
-            ENDIF                                                        SLAP........824200
-C                                                                        SLAP........824300
-C         Unscale R by R0NRM*PROD when KMP < MAXL.                       SLAP........824400
-C                                                                        SLAP........824500
-            IF ( (KMP.LT.MAXL) .AND. (LGMR.NE.0) ) THEN                  SLAP........824600
-               TEM = 1.0D0/(R0NRM*PROD)                                  SLAP........824700
-               CALL DSCAL(N, TEM, R, 1)                                  SLAP........824800
-            ENDIF                                                        SLAP........824900
-C                                                                        SLAP........825000
-            FUZZ = D1MACH(1)                                             SLAP........825100
-            IELMAX = 1                                                   SLAP........825200
-            RATMAX = ABS(DZ(1))/MAX(ABS(X(1)),FUZZ)                      SLAP........825300
-            DO 25 I = 2, N                                               SLAP........825400
-               RAT = ABS(DZ(I))/MAX(ABS(X(I)),FUZZ)                      SLAP........825500
-               IF( RAT.GT.RATMAX ) THEN                                  SLAP........825600
-                  IELMAX = I                                             SLAP........825700
-                  RATMAX = RAT                                           SLAP........825800
-               ENDIF                                                     SLAP........825900
- 25         CONTINUE                                                     SLAP........826000
-            ERR = RATMAX                                                 SLAP........826100
-            IF( RATMAX.LE.TOL ) ISDGMR = 1                               SLAP........826200
-            IF( IUNIT.GT.0 ) WRITE(IUNIT,1020) ITER, IELMAX, RATMAX      SLAP........826300
-            RETURN                                                       SLAP........826400
-         ENDIF                                                           SLAP........826500
-      ENDIF                                                              SLAP........826600
-      IF ( ITOL.EQ.11 ) THEN                                             SLAP........826700
-C                                                                        SLAP........826800
-C       Use DXLCAL to calculate the approximate solution XL.             SLAP........826900
-C                                                                        SLAP........827000
-         IF ( (LGMR.NE.0) .AND. (ITER.GT.0) ) THEN                       SLAP........827100
-            CALL DXLCAL(N, LGMR, X, XL, XL, HES, MAXLP1, Q, V, R0NRM,    SLAP........827200
-     $           DZ, SX, JSCAL, JPRE, MSOLVE, NMSL, RWORK, IWORK,        SLAP........827300
-     $           NELT, IA, JA, A, ISYM)                                  SLAP........827400
-         ELSEIF ( ITER.EQ.0 ) THEN                                       SLAP........827500
-C         Copy X to XL to check if initial guess is good enough.         SLAP........827600
-            CALL DCOPY(N, X, 1, XL, 1)                                   SLAP........827700
-         ELSE                                                            SLAP........827800
-C         Return since this is the first call to DPIGMR on a restart.    SLAP........827900
-            RETURN                                                       SLAP........828000
-         ENDIF                                                           SLAP........828100
-C                                                                        SLAP........828200
-         IF ((JSCAL .EQ. 0) .OR.(JSCAL .EQ. 2)) THEN                     SLAP........828300
-C         err = ||x-TrueSolution||/||TrueSolution||(2-Norms).            SLAP........828400
-            IF ( ITER.EQ.0 ) SOLNRM = DNRM2(N, SOLN, 1)                  SLAP........828500
-            DO 30 I = 1, N                                               SLAP........828600
-               DZ(I) = XL(I) - SOLN(I)                                   SLAP........828700
- 30         CONTINUE                                                     SLAP........828800
-            ERR = DNRM2(N, DZ, 1)/SOLNRM                                 SLAP........828900
-         ELSE                                                            SLAP........829000
-            IF (ITER .EQ. 0) THEN                                        SLAP........829100
-               SOLNRM = 0                                                SLAP........829200
-               DO 40 I = 1,N                                             SLAP........829300
-                  SOLNRM = SOLNRM + (SX(I)*SOLN(I))**2                   SLAP........829400
- 40            CONTINUE                                                  SLAP........829500
-               SOLNRM = SQRT(SOLNRM)                                     SLAP........829600
-            ENDIF                                                        SLAP........829700
-            DXNRM = 0                                                    SLAP........829800
-            DO 50 I = 1,N                                                SLAP........829900
-               DXNRM = DXNRM + (SX(I)*(XL(I)-SOLN(I)))**2                SLAP........830000
- 50         CONTINUE                                                     SLAP........830100
-            DXNRM = SQRT(DXNRM)                                          SLAP........830200
-C         err = ||SX*(x-TrueSolution)||/||SX*TrueSolution|| (2-Norms).   SLAP........830300
-            ERR = DXNRM/SOLNRM                                           SLAP........830400
-         ENDIF                                                           SLAP........830500
-      ENDIF                                                              SLAP........830600
-C                                                                        SLAP........830700
-      IF( IUNIT.NE.0 ) THEN                                              SLAP........830800
-         IF( ITER.EQ.0 ) THEN                                            SLAP........830900
-C...........THE NEXT LINE OF CODE WAS MODIFIED DURING INTEGRATION        SLAP........831000
-C              OF SLAP WITH SUTRA.  IT ORIGINALLY READ:                  SLAP........831100
-C              WRITE(IUNIT,1000) N, ITOL, MAXL, KMP                      SLAP........831200
-            WRITE(IUNIT,1000)                                            SLAP........831300
-         ENDIF                                                           SLAP........831400
-C........THE NEXT LINE OF CODE WAS MODIFIED DURING INTEGRATION           SLAP........831500
-C           OF SLAP WITH SUTRA.  IT ORIGINALLY READ:                     SLAP........831600
-C           WRITE(IUNIT,1010) ITER, RNRM/BNRM, ERR                       SLAP........831700
-         WRITE(IUNIT,1010) ITER, ERR                                     SLAP........831800
-      ENDIF                                                              SLAP........831900
-      IF ( ERR.LE.TOL ) ISDGMR = 1                                       SLAP........832000
-C                                                                        SLAP........832100
-      RETURN                                                             SLAP........832200
-C.....THE NEXT TWO LINES OF CODE REFLECT MODIFICATIONS MADE DURING       SLAP........832300
-C        INTEGRATION FO SLAP WITH SUTRA.  THEY ORIGINALLY READ:          SLAP........832400
-C        1000 FORMAT(' Generalized Minimum Residual(',I3,I3,') for ',    SLAP........832500
-C            $     'N, ITOL = ',I5, I5,                                  SLAP........832600
-C            $     /' ITER','   Natural Err Est','   Error Estimate')    SLAP........832700
-C        1010 FORMAT(1X,I4,1X,D16.7,1X,D16.7)                            SLAP........832800
-1000  FORMAT(1X,6X,'Solver Iteration','   Error Estimate')               SLAP........832900
-1010  FORMAT(1X,6X,I16,1X,1PE16.7)                                       SLAP........833000
- 1020 FORMAT(1X,' ITER = ',I5, ' IELMAX = ',I5,                          SLAP........833100
-     $     ' |R(IELMAX)/X(IELMAX)| = ',D12.5)                            SLAP........833200
-C------------- LAST LINE OF ISDGMR FOLLOWS ----------------------------  SLAP........833300
-      END                                                                SLAP........833400
-*DECK ISDOMN                                                             SLAP........833500
-      INTEGER FUNCTION ISDOMN (N, B, X, NELT, IA, JA, A, ISYM, MSOLVE,   SLAP........833600
-     +   NSAVE, ITOL, TOL, ITMAX, ITER, ERR, IERR, IUNIT, R, Z, P, AP,   SLAP........833700
-     +   EMAP, DZ, CSAV, RWORK, IWORK, AK, BNRM, SOLNRM)                 SLAP........833800
-C***BEGIN PROLOGUE  ISDOMN                                               SLAP........833900
-C***SUBSIDIARY                                                           SLAP........834000
-C***PURPOSE  Preconditioned Orthomin Stop Test.                          SLAP........834100
-C            This routine calculates the stop test for the Orthomin      SLAP........834200
-C            iteration scheme.  It returns a non-zero if the error       SLAP........834300
-C            estimate (the type of which is determined by ITOL) is       SLAP........834400
-C            less than the user specified tolerance TOL.                 SLAP........834500
-C***LIBRARY   SLATEC (SLAP)                                              SLAP........834600
-C***CATEGORY  D2A4, D2B4                                                 SLAP........834700
-C***TYPE      DOUBLE PRECISION (ISSOMN-S, ISDOMN-D)                      SLAP........834800
-C***KEYWORDS  ITERATIVE PRECONDITION, NON-SYMMETRIC LINEAR SYSTEM,       SLAP........834900
-C             ORTHOMIN, SLAP, SPARSE, STOP TEST                          SLAP........835000
-C***AUTHOR  Greenbaum, Anne, (Courant Institute)                         SLAP........835100
-C           Seager, Mark K., (LLNL)                                      SLAP........835200
-C             Lawrence Livermore National Laboratory                     SLAP........835300
-C             PO BOX 808, L-60                                           SLAP........835400
-C             Livermore, CA 94550 (510) 423-3141                         SLAP........835500
-C             seager@llnl.gov                                            SLAP........835600
-C***DESCRIPTION                                                          SLAP........835700
-C                                                                        SLAP........835800
-C *Usage:                                                                SLAP........835900
-C     INTEGER  N, NELT, IA(NELT), JA(NELT), ISYM, NSAVE, ITOL, ITMAX     SLAP........836000
-C     INTEGER  ITER, IERR, IUNIT, IWORK(USER DEFINED)                    SLAP........836100
-C     DOUBLE PRECISION B(N), X(N), A(NELT), TOL, ERR, R(N), Z(N)         SLAP........836200
-C     DOUBLE PRECISION P(N,0:NSAVE), AP(N,0:NSAVE), EMAP(N,0:NSAVE)      SLAP........836300
-C     DOUBLE PRECISION DZ(N), CSAV(NSAVE), RWORK(USER DEFINED), AK       SLAP........836400
-C     DOUBLE PRECISION BNRM, SOLNRM                                      SLAP........836500
-C     EXTERNAL MSOLVE                                                    SLAP........836600
-C                                                                        SLAP........836700
-C     IF( ISDOMN(N, B, X, NELT, IA, JA, A, ISYM, MSOLVE, NSAVE,          SLAP........836800
-C    $     ITOL, TOL, ITMAX, ITER, ERR, IERR, IUNIT, R, Z, P, AP,        SLAP........836900
-C    $     EMAP, DZ, CSAV, RWORK, IWORK, AK, BNRM, SOLNRM)               SLAP........837000
-C    $     .NE.0 ) THEN ITERATION CONVERGED                              SLAP........837100
-C                                                                        SLAP........837200
-C *Arguments:                                                            SLAP........837300
-C N      :IN       Integer.                                              SLAP........837400
-C         Order of the matrix.                                           SLAP........837500
-C B      :IN       Double Precision B(N).                                SLAP........837600
-C         Right-hand side vector.                                        SLAP........837700
-C X      :IN       Double Precision X(N).                                SLAP........837800
-C         On input X is your initial guess for solution vector.          SLAP........837900
-C         On output X is the final approximate solution.                 SLAP........838000
-C NELT   :IN       Integer.                                              SLAP........838100
-C         Number of Non-Zeros stored in A.                               SLAP........838200
-C IA     :IN       Integer IA(NELT).                                     SLAP........838300
-C JA     :IN       Integer JA(NELT).                                     SLAP........838400
-C A      :IN       Double Precision A(NELT).                             SLAP........838500
-C         These arrays should hold the matrix A in either the SLAP       SLAP........838600
-C         Triad format or the SLAP Column format.  See "Description"     SLAP........838700
-C         in the DSDOMN or DSLUOM prologue.                              SLAP........838800
-C ISYM   :IN       Integer.                                              SLAP........838900
-C         Flag to indicate symmetric storage format.                     SLAP........839000
-C         If ISYM=0, all non-zero entries of the matrix are stored.      SLAP........839100
-C         If ISYM=1, the matrix is symmetric, and only the upper         SLAP........839200
-C         or lower triangle of the matrix is stored.                     SLAP........839300
-C MSOLVE :EXT      External.                                             SLAP........839400
-C         Name of a routine which solves a linear system MZ = R for      SLAP........839500
-C         Z given R with the preconditioning matrix M (M is supplied via SLAP........839600
-C         RWORK and IWORK arrays).  The name of the MSOLVE routine must  SLAP........839700
-C         be declared external in the calling program.  The calling      SLAP........839800
-C         sequence to MSOLVE is:                                         SLAP........839900
-C             CALL MSOLVE(N, R, Z, NELT, IA, JA, A, ISYM, RWORK, IWORK)  SLAP........840000
-C         Where N is the number of unknowns, R is the right-hand side    SLAP........840100
-C         vector and Z is the solution upon return.  NELT, IA, JA, A and SLAP........840200
-C         ISYM are defined as above.  RWORK is a double precision array  SLAP........840300
-C         that can be used to pass necessary preconditioning information SLAP........840400
-C         and/or workspace to MSOLVE.  IWORK is an integer work array    SLAP........840500
-C         for the same purpose as RWORK.                                 SLAP........840600
-C NSAVE  :IN       Integer.                                              SLAP........840700
-C         Number of direction vectors to save and orthogonalize against. SLAP........840800
-C ITOL   :IN       Integer.                                              SLAP........840900
-C         Flag to indicate type of convergence criterion.                SLAP........841000
-C         If ITOL=1, iteration stops when the 2-norm of the residual     SLAP........841100
-C         divided by the 2-norm of the right-hand side is less than TOL. SLAP........841200
-C         If ITOL=2, iteration stops when the 2-norm of M-inv times the  SLAP........841300
-C         residual divided by the 2-norm of M-inv times the right hand   SLAP........841400
-C         side is less than TOL, where M-inv is the inverse of the       SLAP........841500
-C         diagonal of A.                                                 SLAP........841600
-C         ITOL=11 is often useful for checking and comparing different   SLAP........841700
-C         routines.  For this case, the user must supply the "exact"     SLAP........841800
-C         solution or a very accurate approximation (one with an error   SLAP........841900
-C         much less than TOL) through a common block,                    SLAP........842000
-C             COMMON /DSLBLK/ SOLN( )                                    SLAP........842100
-C         If ITOL=11, iteration stops when the 2-norm of the difference  SLAP........842200
-C         between the iterative approximation and the user-supplied      SLAP........842300
-C         solution divided by the 2-norm of the user-supplied solution   SLAP........842400
-C         is less than TOL.  Note that this requires the user to set up  SLAP........842500
-C         the "COMMON /DSLBLK/ SOLN(LENGTH)" in the calling routine.     SLAP........842600
-C         The routine with this declaration should be loaded before the  SLAP........842700
-C         stop test so that the correct length is used by the loader.    SLAP........842800
-C         This procedure is not standard Fortran and may not work        SLAP........842900
-C         correctly on your system (although it has worked on every      SLAP........843000
-C         system the authors have tried).  If ITOL is not 11 then this   SLAP........843100
-C         common block is indeed standard Fortran.                       SLAP........843200
-C TOL    :IN       Double Precision.                                     SLAP........843300
-C         Convergence criterion, as described above.                     SLAP........843400
-C ITMAX  :IN       Integer.                                              SLAP........843500
-C         Maximum number of iterations.                                  SLAP........843600
-C ITER   :IN       Integer.                                              SLAP........843700
-C         Current iteration count.  (Must be zero on first call.)        SLAP........843800
-C ERR    :OUT      Double Precision.                                     SLAP........843900
-C         Error estimate of error in final approximate solution, as      SLAP........844000
-C         defined by ITOL.                                               SLAP........844100
-C IERR   :OUT      Integer.                                              SLAP........844200
-C         Error flag.  IERR is set to 3 if ITOL is not one of the        SLAP........844300
-C         acceptable values, see above.                                  SLAP........844400
-C IUNIT  :IN       Integer.                                              SLAP........844500
-C         Unit number on which to write the error at each iteration,     SLAP........844600
-C         if this is desired for monitoring convergence.  If unit        SLAP........844700
-C         number is 0, no writing will occur.                            SLAP........844800
-C R      :IN       Double Precision R(N).                                SLAP........844900
-C         The residual R = B-AX.                                         SLAP........845000
-C Z      :WORK     Double Precision Z(N).                                SLAP........845100
-C P      :IN       Double Precision P(N,0:NSAVE).                        SLAP........845200
-C         Workspace used to hold the conjugate direction vector(s).      SLAP........845300
-C AP     :IN       Double Precision AP(N,0:NSAVE).                       SLAP........845400
-C         Workspace used to hold the matrix A times the P vector(s).     SLAP........845500
-C EMAP   :IN       Double Precision EMAP(N,0:NSAVE).                     SLAP........845600
-C         Workspace used to hold M-inv times the AP vector(s).           SLAP........845700
-C DZ     :WORK     Double Precision DZ(N).                               SLAP........845800
-C         Workspace.                                                     SLAP........845900
-C CSAV   :DUMMY    Double Precision CSAV(NSAVE)                          SLAP........846000
-C         Reserved for future use.                                       SLAP........846100
-C RWORK  :WORK     Double Precision RWORK(USER DEFINED).                 SLAP........846200
-C         Double Precision array that can be used for workspace in       SLAP........846300
-C         MSOLVE.                                                        SLAP........846400
-C IWORK  :WORK     Integer IWORK(USER DEFINED).                          SLAP........846500
-C         Integer array that can be used for workspace in MSOLVE.        SLAP........846600
-C AK     :IN       Double Precision.                                     SLAP........846700
-C         Current iterate Orthomin iteration parameter.                  SLAP........846800
-C BNRM   :OUT      Double Precision.                                     SLAP........846900
-C         Current solution B-norm, if ITOL = 1 or 2.                     SLAP........847000
-C SOLNRM :OUT      Double Precision.                                     SLAP........847100
-C         True solution norm, if ITOL = 11.                              SLAP........847200
-C                                                                        SLAP........847300
-C *Function Return Values:                                               SLAP........847400
-C       0 : Error estimate (determined by ITOL) is *NOT* less than the   SLAP........847500
-C           specified tolerance, TOL.  The iteration must continue.      SLAP........847600
-C       1 : Error estimate (determined by ITOL) is less than the         SLAP........847700
-C           specified tolerance, TOL.  The iteration can be considered   SLAP........847800
-C           complete.                                                    SLAP........847900
-C                                                                        SLAP........848000
-C *Cautions:                                                             SLAP........848100
-C     This routine will attempt to write to the Fortran logical output   SLAP........848200
-C     unit IUNIT, if IUNIT .ne. 0.  Thus, the user must make sure that   SLAP........848300
-C     this logical unit is attached to a file or terminal before calling SLAP........848400
-C     this routine with a non-zero value for IUNIT.  This routine does   SLAP........848500
-C     not check for the validity of a non-zero IUNIT unit number.        SLAP........848600
-C                                                                        SLAP........848700
-C***SEE ALSO  DOMN, DSDOMN, DSLUOM                                       SLAP........848800
-C***ROUTINES CALLED  D1MACH, DNRM2                                       SLAP........848900
-C***COMMON BLOCKS    DSLBLK                                              SLAP........849000
-C***REVISION HISTORY  (YYMMDD)                                           SLAP........849100
-C   890404  DATE WRITTEN                                                 SLAP........849200
-C   890404  Previous REVISION DATE                                       SLAP........849300
-C   890915  Made changes requested at July 1989 CML Meeting.  (MKS)      SLAP........849400
-C   890922  Numerous changes to prologue to make closer to SLATEC        SLAP........849500
-C           standard.  (FNF)                                             SLAP........849600
-C   890929  Numerous changes to reduce SP/DP differences.  (FNF)         SLAP........849700
-C   891003  Removed C***REFER TO line, per MKS.                          SLAP........849800
-C   910411  Prologue converted to Version 4.0 format.  (BAB)             SLAP........849900
-C   910502  Removed MSOLVE from ROUTINES CALLED list.  (FNF)             SLAP........850000
-C   910506  Made subsidiary to DOMN.  (FNF)                              SLAP........850100
-C   920407  COMMON BLOCK renamed DSLBLK.  (WRB)                          SLAP........850200
-C   920511  Added complete declaration section.  (WRB)                   SLAP........850300
-C   920930  Corrected to not print AK when ITER=0.  (FNF)                SLAP........850400
-C   921026  Changed 1.0E10 to D1MACH(2) and corrected D to E in          SLAP........850500
-C           output format.  (FNF)                                        SLAP........850600
-C   921113  Corrected C***CATEGORY line.  (FNF)                          SLAP........850700
-C***END PROLOGUE  ISDOMN                                                 SLAP........850800
-C     .. Scalar Arguments ..                                             SLAP........850900
-      DOUBLE PRECISION AK, BNRM, ERR, SOLNRM, TOL                        SLAP........851000
-      INTEGER IERR, ISYM, ITER, ITMAX, ITOL, IUNIT, N, NELT, NSAVE       SLAP........851100
-C     .. Array Arguments ..                                              SLAP........851200
-      DOUBLE PRECISION A(NELT), AP(N,0:NSAVE), B(N), CSAV(NSAVE),        SLAP........851300
-     +                 DZ(N), EMAP(N,0:NSAVE), P(N,0:NSAVE), R(N),       SLAP........851400
-     +                 RWORK(*), X(N), Z(N)                              SLAP........851500
-      INTEGER IA(NELT), IWORK(*), JA(NELT)                               SLAP........851600
-C     .. Subroutine Arguments ..                                         SLAP........851700
-      EXTERNAL MSOLVE                                                    SLAP........851800
-C     .. Arrays in Common ..                                             SLAP........851900
-      DOUBLE PRECISION SOLN(1)                                           SLAP........852000
-C     .. Local Scalars ..                                                SLAP........852100
-      INTEGER I                                                          SLAP........852200
-C     .. External Functions ..                                           SLAP........852300
-      DOUBLE PRECISION D1MACH, DNRM2                                     SLAP........852400
-      EXTERNAL D1MACH, DNRM2                                             SLAP........852500
-C     .. Common blocks ..                                                SLAP........852600
-      COMMON /DSLBLK/ SOLN                                               SLAP........852700
-C***FIRST EXECUTABLE STATEMENT  ISDOMN                                   SLAP........852800
-      ISDOMN = 0                                                         SLAP........852900
-C                                                                        SLAP........853000
-      IF( ITOL.EQ.1 ) THEN                                               SLAP........853100
-C         err = ||Residual||/||RightHandSide|| (2-Norms).                SLAP........853200
-         IF(ITER .EQ. 0) BNRM = DNRM2(N, B, 1)                           SLAP........853300
-         ERR = DNRM2(N, R, 1)/BNRM                                       SLAP........853400
-      ELSE IF( ITOL.EQ.2 ) THEN                                          SLAP........853500
-C                  -1              -1                                    SLAP........853600
-C         err = ||M  Residual||/||M  RightHandSide|| (2-Norms).          SLAP........853700
-         IF(ITER .EQ. 0) THEN                                            SLAP........853800
-            CALL MSOLVE(N, B, DZ, NELT, IA, JA, A, ISYM, RWORK, IWORK)   SLAP........853900
-            BNRM = DNRM2(N, DZ, 1)                                       SLAP........854000
-         ENDIF                                                           SLAP........854100
-         ERR = DNRM2(N, Z, 1)/BNRM                                       SLAP........854200
-      ELSE IF( ITOL.EQ.11 ) THEN                                         SLAP........854300
-C         err = ||x-TrueSolution||/||TrueSolution|| (2-Norms).           SLAP........854400
-         IF(ITER .EQ. 0) SOLNRM = DNRM2(N, SOLN, 1)                      SLAP........854500
-         DO 10 I = 1, N                                                  SLAP........854600
-            DZ(I) = X(I) - SOLN(I)                                       SLAP........854700
- 10      CONTINUE                                                        SLAP........854800
-         ERR = DNRM2(N, DZ, 1)/SOLNRM                                    SLAP........854900
-      ELSE                                                               SLAP........855000
-C                                                                        SLAP........855100
-C         If we get here ITOL is not one of the acceptable values.       SLAP........855200
-         ERR = D1MACH(2)                                                 SLAP........855300
-         IERR = 3                                                        SLAP........855400
-      ENDIF                                                              SLAP........855500
-C                                                                        SLAP........855600
-C.....THE BLOCK IF STATEMENT THAT IMMEDIATELY FOLLOWS THIS COMMMENT      SLAP........855700
-C        WAS MODIFIED DURING INTEGRATION OF SLAP WITH SUTRA.  IT         SLAP........855800
-C        ORIGINALLY READ:                                                SLAP........855900
-C        IF(IUNIT .NE. 0) THEN                                           SLAP........856000
-C           IF( ITER.EQ.0 ) THEN                                         SLAP........856100
-C              WRITE(IUNIT,1000) NSAVE, N, ITOL                          SLAP........856200
-C              WRITE(IUNIT,1010) ITER, ERR                               SLAP........856300
-C           ELSE                                                         SLAP........856400
-C              WRITE(IUNIT,1010) ITER, ERR, AK                           SLAP........856500
-C           ENDIF                                                        SLAP........856600
-C        ENDIF                                                           SLAP........856700
-      IF(IUNIT .NE. 0) THEN                                              SLAP........856800
-         IF( ITER.EQ.0 ) WRITE(IUNIT,1000)                               SLAP........856900
-         WRITE(IUNIT,1010) ITER, ERR                                     SLAP........857000
-      ENDIF                                                              SLAP........857100
-      IF(ERR .LE. TOL) ISDOMN = 1                                        SLAP........857200
-C                                                                        SLAP........857300
-      RETURN                                                             SLAP........857400
-C.....THE NEXT TWO LINES OF CODE REFLECT MODIFICATIONS MADE DURING       SLAP........857500
-C        INTEGRATION OF SLAP WITH SUTRA.  THEY ORIGINALLY READ:          SLAP........857600
-C        1000 FORMAT(' Preconditioned Orthomin(',I3,') for ',            SLAP........857700
-C            $     'N, ITOL = ',I5, I5,                                  SLAP........857800
-C            $     /' ITER','   Error Estimate','            Alpha')     SLAP........857900
-C        1010 FORMAT(1X,I4,1X,D16.7,1X,D16.7)                            SLAP........858000
-1000  FORMAT(1X,6X,'Solver Iteration','   Error Estimate')               SLAP........858100
-1010  FORMAT(1X,6X,I16,1X,1PE16.7)                                       SLAP........858200
-C------------- LAST LINE OF ISDOMN FOLLOWS ----------------------------  SLAP........858300
-      END                                                                SLAP........858400
-*DECK J4SAVE                                                             SLAP........858500
-      FUNCTION J4SAVE (IWHICH, IVALUE, ISET)                             SLAP........858600
-C***BEGIN PROLOGUE  J4SAVE                                               SLAP........858700
-C***SUBSIDIARY                                                           SLAP........858800
-C***PURPOSE  Save or recall global variables needed by error             SLAP........858900
-C            handling routines.                                          SLAP........859000
-C***LIBRARY   SLATEC (XERROR)                                            SLAP........859100
-C***TYPE      INTEGER (J4SAVE-I)                                         SLAP........859200
-C***KEYWORDS  ERROR MESSAGES, ERROR NUMBER, RECALL, SAVE, XERROR         SLAP........859300
-C***AUTHOR  Jones, R. E., (SNLA)                                         SLAP........859400
-C***DESCRIPTION                                                          SLAP........859500
-C                                                                        SLAP........859600
-C     Abstract                                                           SLAP........859700
-C        J4SAVE saves and recalls several global variables needed        SLAP........859800
-C        by the library error handling routines.                         SLAP........859900
-C                                                                        SLAP........860000
-C     Description of Parameters                                          SLAP........860100
-C      --Input--                                                         SLAP........860200
-C        IWHICH - Index of item desired.                                 SLAP........860300
-C                = 1 Refers to current error number.                     SLAP........860400
-C                = 2 Refers to current error control flag.               SLAP........860500
-C                = 3 Refers to current unit number to which error        SLAP........860600
-C                    messages are to be sent.  (0 means use standard.)   SLAP........860700
-C                = 4 Refers to the maximum number of times any           SLAP........860800
-C                     message is to be printed (as set by XERMAX).       SLAP........860900
-C                = 5 Refers to the total number of units to which        SLAP........861000
-C                     each error message is to be written.               SLAP........861100
-C                = 6 Refers to the 2nd unit for error messages           SLAP........861200
-C                = 7 Refers to the 3rd unit for error messages           SLAP........861300
-C                = 8 Refers to the 4th unit for error messages           SLAP........861400
-C                = 9 Refers to the 5th unit for error messages           SLAP........861500
-C        IVALUE - The value to be set for the IWHICH-th parameter,       SLAP........861600
-C                 if ISET is .TRUE. .                                    SLAP........861700
-C        ISET   - If ISET=.TRUE., the IWHICH-th parameter will BE        SLAP........861800
-C                 given the value, IVALUE.  If ISET=.FALSE., the         SLAP........861900
-C                 IWHICH-th parameter will be unchanged, and IVALUE      SLAP........862000
-C                 is a dummy parameter.                                  SLAP........862100
-C      --Output--                                                        SLAP........862200
-C        The (old) value of the IWHICH-th parameter will be returned     SLAP........862300
-C        in the function value, J4SAVE.                                  SLAP........862400
-C                                                                        SLAP........862500
-C***SEE ALSO  XERMSG                                                     SLAP........862600
-C***REFERENCES  R. E. Jones and D. K. Kahaner, XERROR, the SLATEC        SLAP........862700
-C                 Error-handling Package, SAND82-0800, Sandia            SLAP........862800
-C                 Laboratories, 1982.                                    SLAP........862900
-C***ROUTINES CALLED  (NONE)                                              SLAP........863000
-C***REVISION HISTORY  (YYMMDD)                                           SLAP........863100
-C   790801  DATE WRITTEN                                                 SLAP........863200
-C   891214  Prologue converted to Version 4.0 format.  (BAB)             SLAP........863300
-C   900205  Minor modifications to prologue.  (WRB)                      SLAP........863400
-C   900402  Added TYPE section.  (WRB)                                   SLAP........863500
-C   910411  Added KEYWORDS section.  (WRB)                               SLAP........863600
-C   920501  Reformatted the REFERENCES section.  (WRB)                   SLAP........863700
-C***END PROLOGUE  J4SAVE                                                 SLAP........863800
-      LOGICAL ISET                                                       SLAP........863900
-      INTEGER IPARAM(9)                                                  SLAP........864000
-      SAVE IPARAM                                                        SLAP........864100
-      DATA IPARAM(1),IPARAM(2),IPARAM(3),IPARAM(4)/0,2,0,10/             SLAP........864200
-      DATA IPARAM(5)/1/                                                  SLAP........864300
-      DATA IPARAM(6),IPARAM(7),IPARAM(8),IPARAM(9)/0,0,0,0/              SLAP........864400
-C***FIRST EXECUTABLE STATEMENT  J4SAVE                                   SLAP........864500
-      J4SAVE = IPARAM(IWHICH)                                            SLAP........864600
-      IF (ISET) IPARAM(IWHICH) = IVALUE                                  SLAP........864700
-      RETURN                                                             SLAP........864800
-      END                                                                SLAP........864900
-*DECK QS2I1D                                                             SLAP........865000
-      SUBROUTINE QS2I1D (IA, JA, A, N, KFLAG)                            SLAP........865100
-C***BEGIN PROLOGUE  QS2I1D                                               SLAP........865200
-C***SUBSIDIARY                                                           SLAP........865300
-C***PURPOSE  Sort an integer array, moving an integer and DP array.      SLAP........865400
-C            This routine sorts the integer array IA and makes the same  SLAP........865500
-C            interchanges in the integer array JA and the double pre-    SLAP........865600
-C            cision array A.  The array IA may be sorted in increasing   SLAP........865700
-C            order or decreasing order.  A slightly modified QUICKSORT   SLAP........865800
-C            algorithm is used.                                          SLAP........865900
-C***LIBRARY   SLATEC (SLAP)                                              SLAP........866000
-C***CATEGORY  N6A2A                                                      SLAP........866100
-C***TYPE      DOUBLE PRECISION (QS2I1R-S, QS2I1D-D)                      SLAP........866200
-C***KEYWORDS  SINGLETON QUICKSORT, SLAP, SORT, SORTING                   SLAP........866300
-C***AUTHOR  Jones, R. E., (SNLA)                                         SLAP........866400
-C           Kahaner, D. K., (NBS)                                        SLAP........866500
-C           Seager, M. K., (LLNL) seager@llnl.gov                        SLAP........866600
-C           Wisniewski, J. A., (SNLA)                                    SLAP........866700
-C***DESCRIPTION                                                          SLAP........866800
-C     Written by Rondall E Jones                                         SLAP........866900
-C     Modified by John A. Wisniewski to use the Singleton QUICKSORT      SLAP........867000
-C     algorithm. date 18 November 1976.                                  SLAP........867100
-C                                                                        SLAP........867200
-C     Further modified by David K. Kahaner                               SLAP........867300
-C     National Bureau of Standards                                       SLAP........867400
-C     August, 1981                                                       SLAP........867500
-C                                                                        SLAP........867600
-C     Even further modification made to bring the code up to the         SLAP........867700
-C     Fortran 77 level and make it more readable and to carry            SLAP........867800
-C     along one integer array and one double precision array during      SLAP........867900
-C     the sort by                                                        SLAP........868000
-C     Mark K. Seager                                                     SLAP........868100
-C     Lawrence Livermore National Laboratory                             SLAP........868200
-C     November, 1987                                                     SLAP........868300
-C     This routine was adapted from the ISORT routine.                   SLAP........868400
-C                                                                        SLAP........868500
-C     ABSTRACT                                                           SLAP........868600
-C         This routine sorts an integer array IA and makes the same      SLAP........868700
-C         interchanges in the integer array JA and the double precision  SLAP........868800
-C         array A.                                                       SLAP........868900
-C         The array IA may be sorted in increasing order or decreasing   SLAP........869000
-C         order.  A slightly modified quicksort algorithm is used.       SLAP........869100
-C                                                                        SLAP........869200
-C     DESCRIPTION OF PARAMETERS                                          SLAP........869300
-C        IA - Integer array of values to be sorted.                      SLAP........869400
-C        JA - Integer array to be carried along.                         SLAP........869500
-C         A - Double Precision array to be carried along.                SLAP........869600
-C         N - Number of values in integer array IA to be sorted.         SLAP........869700
-C     KFLAG - Control parameter                                          SLAP........869800
-C           = 1 means sort IA in INCREASING order.                       SLAP........869900
-C           =-1 means sort IA in DECREASING order.                       SLAP........870000
-C                                                                        SLAP........870100
-C***SEE ALSO  DS2Y                                                       SLAP........870200
-C***REFERENCES  R. C. Singleton, Algorithm 347, An Efficient Algorithm   SLAP........870300
-C                 for Sorting With Minimal Storage, Communications ACM   SLAP........870400
-C                 12:3 (1969), pp.185-7.                                 SLAP........870500
-C***ROUTINES CALLED  XERMSG                                              SLAP........870600
-C***REVISION HISTORY  (YYMMDD)                                           SLAP........870700
-C   761118  DATE WRITTEN                                                 SLAP........870800
-C   890125  Previous REVISION DATE                                       SLAP........870900
-C   890915  Made changes requested at July 1989 CML Meeting.  (MKS)      SLAP........871000
-C   890922  Numerous changes to prologue to make closer to SLATEC        SLAP........871100
-C           standard.  (FNF)                                             SLAP........871200
-C   890929  Numerous changes to reduce SP/DP differences.  (FNF)         SLAP........871300
-C   900805  Changed XERROR calls to calls to XERMSG.  (RWC)              SLAP........871400
-C   910411  Prologue converted to Version 4.0 format.  (BAB)             SLAP........871500
-C   910506  Made subsidiary to DS2Y and corrected reference.  (FNF)      SLAP........871600
-C   920511  Added complete declaration section.  (WRB)                   SLAP........871700
-C   920929  Corrected format of reference.  (FNF)                        SLAP........871800
-C   921012  Corrected all f.p. constants to double precision.  (FNF)     SLAP........871900
-C***END PROLOGUE  QS2I1D                                                 SLAP........872000
-CVD$R NOVECTOR                                                           SLAP........872100
-CVD$R NOCONCUR                                                           SLAP........872200
-C     .. Scalar Arguments ..                                             SLAP........872300
-      INTEGER KFLAG, N                                                   SLAP........872400
-C     .. Array Arguments ..                                              SLAP........872500
-      DOUBLE PRECISION A(N)                                              SLAP........872600
-      INTEGER IA(N), JA(N)                                               SLAP........872700
-C     .. Local Scalars ..                                                SLAP........872800
-      DOUBLE PRECISION R, TA, TTA                                        SLAP........872900
-      INTEGER I, IIT, IJ, IT, J, JJT, JT, K, KK, L, M, NN                SLAP........873000
-C     .. Local Arrays ..                                                 SLAP........873100
-      INTEGER IL(21), IU(21)                                             SLAP........873200
-C     .. External Subroutines ..                                         SLAP........873300
-      EXTERNAL XERMSG                                                    SLAP........873400
-C     .. Intrinsic Functions ..                                          SLAP........873500
-      INTRINSIC ABS, INT                                                 SLAP........873600
-C***FIRST EXECUTABLE STATEMENT  QS2I1D                                   SLAP........873700
-      NN = N                                                             SLAP........873800
-      IF (NN.LT.1) THEN                                                  SLAP........873900
-         CALL XERMSG ('SLATEC', 'QS2I1D',                                SLAP........874000
-     $      'The number of values to be sorted was not positive.', 1, 1) SLAP........874100
-         RETURN                                                          SLAP........874200
-      ENDIF                                                              SLAP........874300
-      IF( N.EQ.1 ) RETURN                                                SLAP........874400
-      KK = ABS(KFLAG)                                                    SLAP........874500
-      IF ( KK.NE.1 ) THEN                                                SLAP........874600
-         CALL XERMSG ('SLATEC', 'QS2I1D',                                SLAP........874700
-     $      'The sort control parameter, K, was not 1 or -1.', 2, 1)     SLAP........874800
-         RETURN                                                          SLAP........874900
-      ENDIF                                                              SLAP........875000
-C                                                                        SLAP........875100
-C     Alter array IA to get decreasing order if needed.                  SLAP........875200
-C                                                                        SLAP........875300
-      IF( KFLAG.LT.1 ) THEN                                              SLAP........875400
-         DO 20 I=1,NN                                                    SLAP........875500
-            IA(I) = -IA(I)                                               SLAP........875600
- 20      CONTINUE                                                        SLAP........875700
-      ENDIF                                                              SLAP........875800
-C                                                                        SLAP........875900
-C     Sort IA and carry JA and A along.                                  SLAP........876000
-C     And now...Just a little black magic...                             SLAP........876100
-      M = 1                                                              SLAP........876200
-      I = 1                                                              SLAP........876300
-      J = NN                                                             SLAP........876400
-      R = .375D0                                                         SLAP........876500
- 210  IF( R.LE.0.5898437D0 ) THEN                                        SLAP........876600
-         R = R + 3.90625D-2                                              SLAP........876700
-      ELSE                                                               SLAP........876800
-         R = R-.21875D0                                                  SLAP........876900
-      ENDIF                                                              SLAP........877000
- 225  K = I                                                              SLAP........877100
-C                                                                        SLAP........877200
-C     Select a central element of the array and save it in location      SLAP........877300
-C     it, jt, at.                                                        SLAP........877400
+C       Use DRLCAL to calculate the scaled residual vector.              SLAP........822300
+C       Store answer in R.                                               SLAP........822400
+C                                                                        SLAP........822500
+         IF ( LGMR.NE.0 ) CALL DRLCAL(N, KMP, LGMR, MAXL, V, Q, R,       SLAP........822600
+     $                                SNORMW, PROD, R0NRM)               SLAP........822700
+         IF ( ITOL.LE.2 ) THEN                                           SLAP........822800
+C         err = ||Residual||/||RightHandSide||(2-Norms).                 SLAP........822900
+            ERR = DNRM2(N, R, 1)/BNRM                                    SLAP........823000
+C                                                                        SLAP........823100
+C         Unscale R by R0NRM*PROD when KMP < MAXL.                       SLAP........823200
+C                                                                        SLAP........823300
+            IF ( (KMP.LT.MAXL) .AND. (LGMR.NE.0) ) THEN                  SLAP........823400
+               TEM = 1.0D0/(R0NRM*PROD)                                  SLAP........823500
+               CALL DSCAL(N, TEM, R, 1)                                  SLAP........823600
+            ENDIF                                                        SLAP........823700
+         ELSEIF ( ITOL.EQ.3 ) THEN                                       SLAP........823800
+C         err = Max |(Minv*Residual)(i)/x(i)|                            SLAP........823900
+C         When JPRE .lt. 0, R already contains Minv*Residual.            SLAP........824000
+            IF ( JPRE.GT.0 ) THEN                                        SLAP........824100
+               CALL MSOLVE(N, R, DZ, NELT, IA, JA, A, ISYM, RWORK,       SLAP........824200
+     $              IWORK)                                               SLAP........824300
+               NMSL = NMSL + 1                                           SLAP........824400
+            ENDIF                                                        SLAP........824500
+C                                                                        SLAP........824600
+C         Unscale R by R0NRM*PROD when KMP < MAXL.                       SLAP........824700
+C                                                                        SLAP........824800
+            IF ( (KMP.LT.MAXL) .AND. (LGMR.NE.0) ) THEN                  SLAP........824900
+               TEM = 1.0D0/(R0NRM*PROD)                                  SLAP........825000
+               CALL DSCAL(N, TEM, R, 1)                                  SLAP........825100
+            ENDIF                                                        SLAP........825200
+C                                                                        SLAP........825300
+            FUZZ = D1MACH(1)                                             SLAP........825400
+            IELMAX = 1                                                   SLAP........825500
+            RATMAX = ABS(DZ(1))/MAX(ABS(X(1)),FUZZ)                      SLAP........825600
+            DO 25 I = 2, N                                               SLAP........825700
+               RAT = ABS(DZ(I))/MAX(ABS(X(I)),FUZZ)                      SLAP........825800
+               IF( RAT.GT.RATMAX ) THEN                                  SLAP........825900
+                  IELMAX = I                                             SLAP........826000
+                  RATMAX = RAT                                           SLAP........826100
+               ENDIF                                                     SLAP........826200
+ 25         CONTINUE                                                     SLAP........826300
+            ERR = RATMAX                                                 SLAP........826400
+            IF( RATMAX.LE.TOL ) ISDGMR = 1                               SLAP........826500
+            IF( IUNIT.GT.0 ) WRITE(IUNIT,1020) ITER, IELMAX, RATMAX      SLAP........826600
+            RETURN                                                       SLAP........826700
+         ENDIF                                                           SLAP........826800
+      ENDIF                                                              SLAP........826900
+      IF ( ITOL.EQ.11 ) THEN                                             SLAP........827000
+C                                                                        SLAP........827100
+C       Use DXLCAL to calculate the approximate solution XL.             SLAP........827200
+C                                                                        SLAP........827300
+         IF ( (LGMR.NE.0) .AND. (ITER.GT.0) ) THEN                       SLAP........827400
+            CALL DXLCAL(N, LGMR, X, XL, XL, HES, MAXLP1, Q, V, R0NRM,    SLAP........827500
+     $           DZ, SX, JSCAL, JPRE, MSOLVE, NMSL, RWORK, IWORK,        SLAP........827600
+     $           NELT, IA, JA, A, ISYM)                                  SLAP........827700
+         ELSEIF ( ITER.EQ.0 ) THEN                                       SLAP........827800
+C         Copy X to XL to check if initial guess is good enough.         SLAP........827900
+            CALL DCOPY(N, X, 1, XL, 1)                                   SLAP........828000
+         ELSE                                                            SLAP........828100
+C         Return since this is the first call to DPIGMR on a restart.    SLAP........828200
+            RETURN                                                       SLAP........828300
+         ENDIF                                                           SLAP........828400
+C                                                                        SLAP........828500
+         IF ((JSCAL .EQ. 0) .OR.(JSCAL .EQ. 2)) THEN                     SLAP........828600
+C         err = ||x-TrueSolution||/||TrueSolution||(2-Norms).            SLAP........828700
+            IF ( ITER.EQ.0 ) SOLNRM = DNRM2(N, SOLN, 1)                  SLAP........828800
+            DO 30 I = 1, N                                               SLAP........828900
+               DZ(I) = XL(I) - SOLN(I)                                   SLAP........829000
+ 30         CONTINUE                                                     SLAP........829100
+            ERR = DNRM2(N, DZ, 1)/SOLNRM                                 SLAP........829200
+         ELSE                                                            SLAP........829300
+            IF (ITER .EQ. 0) THEN                                        SLAP........829400
+               SOLNRM = 0                                                SLAP........829500
+               DO 40 I = 1,N                                             SLAP........829600
+                  SOLNRM = SOLNRM + (SX(I)*SOLN(I))**2                   SLAP........829700
+ 40            CONTINUE                                                  SLAP........829800
+               SOLNRM = SQRT(SOLNRM)                                     SLAP........829900
+            ENDIF                                                        SLAP........830000
+            DXNRM = 0                                                    SLAP........830100
+            DO 50 I = 1,N                                                SLAP........830200
+               DXNRM = DXNRM + (SX(I)*(XL(I)-SOLN(I)))**2                SLAP........830300
+ 50         CONTINUE                                                     SLAP........830400
+            DXNRM = SQRT(DXNRM)                                          SLAP........830500
+C         err = ||SX*(x-TrueSolution)||/||SX*TrueSolution|| (2-Norms).   SLAP........830600
+            ERR = DXNRM/SOLNRM                                           SLAP........830700
+         ENDIF                                                           SLAP........830800
+      ENDIF                                                              SLAP........830900
+C                                                                        SLAP........831000
+      IF( IUNIT.NE.0 ) THEN                                              SLAP........831100
+         IF( ITER.EQ.0 ) THEN                                            SLAP........831200
+C...........THE NEXT LINE OF CODE WAS MODIFIED DURING INTEGRATION        SLAP........831300
+C              OF SLAP WITH SUTRA.  IT ORIGINALLY READ:                  SLAP........831400
+C              WRITE(IUNIT,1000) N, ITOL, MAXL, KMP                      SLAP........831500
+            WRITE(IUNIT,1000)                                            SLAP........831600
+         ENDIF                                                           SLAP........831700
+C........THE NEXT LINE OF CODE WAS MODIFIED DURING INTEGRATION           SLAP........831800
+C           OF SLAP WITH SUTRA.  IT ORIGINALLY READ:                     SLAP........831900
+C           WRITE(IUNIT,1010) ITER, RNRM/BNRM, ERR                       SLAP........832000
+         WRITE(IUNIT,1010) ITER, ERR                                     SLAP........832100
+      ENDIF                                                              SLAP........832200
+      IF ( ERR.LE.TOL ) ISDGMR = 1                                       SLAP........832300
+C                                                                        SLAP........832400
+      RETURN                                                             SLAP........832500
+C.....THE NEXT TWO LINES OF CODE REFLECT MODIFICATIONS MADE DURING       SLAP........832600
+C        INTEGRATION FO SLAP WITH SUTRA.  THEY ORIGINALLY READ:          SLAP........832700
+C        1000 FORMAT(' Generalized Minimum Residual(',I3,I3,') for ',    SLAP........832800
+C            $     'N, ITOL = ',I5, I5,                                  SLAP........832900
+C            $     /' ITER','   Natural Err Est','   Error Estimate')    SLAP........833000
+C        1010 FORMAT(1X,I4,1X,D16.7,1X,D16.7)                            SLAP........833100
+1000  FORMAT(1X,6X,'Solver Iteration','   Error Estimate')               SLAP........833200
+1010  FORMAT(1X,6X,I16,1X,1PE16.7)                                       SLAP........833300
+ 1020 FORMAT(1X,' ITER = ',I5, ' IELMAX = ',I5,                          SLAP........833400
+     $     ' |R(IELMAX)/X(IELMAX)| = ',D12.5)                            SLAP........833500
+C------------- LAST LINE OF ISDGMR FOLLOWS ----------------------------  SLAP........833600
+      END                                                                SLAP........833700
+*DECK ISDOMN                                                             SLAP........833800
+      INTEGER FUNCTION ISDOMN (N, B, X, NELT, IA, JA, A, ISYM, MSOLVE,   SLAP........833900
+     +   NSAVE, ITOL, TOL, ITMAX, ITER, ERR, IERR, IUNIT, R, Z, P, AP,   SLAP........834000
+     +   EMAP, DZ, CSAV, RWORK, IWORK, AK, BNRM, SOLNRM)                 SLAP........834100
+C***BEGIN PROLOGUE  ISDOMN                                               SLAP........834200
+C***SUBSIDIARY                                                           SLAP........834300
+C***PURPOSE  Preconditioned Orthomin Stop Test.                          SLAP........834400
+C            This routine calculates the stop test for the Orthomin      SLAP........834500
+C            iteration scheme.  It returns a non-zero if the error       SLAP........834600
+C            estimate (the type of which is determined by ITOL) is       SLAP........834700
+C            less than the user specified tolerance TOL.                 SLAP........834800
+C***LIBRARY   SLATEC (SLAP)                                              SLAP........834900
+C***CATEGORY  D2A4, D2B4                                                 SLAP........835000
+C***TYPE      DOUBLE PRECISION (ISSOMN-S, ISDOMN-D)                      SLAP........835100
+C***KEYWORDS  ITERATIVE PRECONDITION, NON-SYMMETRIC LINEAR SYSTEM,       SLAP........835200
+C             ORTHOMIN, SLAP, SPARSE, STOP TEST                          SLAP........835300
+C***AUTHOR  Greenbaum, Anne, (Courant Institute)                         SLAP........835400
+C           Seager, Mark K., (LLNL)                                      SLAP........835500
+C             Lawrence Livermore National Laboratory                     SLAP........835600
+C             PO BOX 808, L-60                                           SLAP........835700
+C             Livermore, CA 94550 (510) 423-3141                         SLAP........835800
+C             seager@llnl.gov                                            SLAP........835900
+C***DESCRIPTION                                                          SLAP........836000
+C                                                                        SLAP........836100
+C *Usage:                                                                SLAP........836200
+C     INTEGER  N, NELT, IA(NELT), JA(NELT), ISYM, NSAVE, ITOL, ITMAX     SLAP........836300
+C     INTEGER  ITER, IERR, IUNIT, IWORK(USER DEFINED)                    SLAP........836400
+C     DOUBLE PRECISION B(N), X(N), A(NELT), TOL, ERR, R(N), Z(N)         SLAP........836500
+C     DOUBLE PRECISION P(N,0:NSAVE), AP(N,0:NSAVE), EMAP(N,0:NSAVE)      SLAP........836600
+C     DOUBLE PRECISION DZ(N), CSAV(NSAVE), RWORK(USER DEFINED), AK       SLAP........836700
+C     DOUBLE PRECISION BNRM, SOLNRM                                      SLAP........836800
+C     EXTERNAL MSOLVE                                                    SLAP........836900
+C                                                                        SLAP........837000
+C     IF( ISDOMN(N, B, X, NELT, IA, JA, A, ISYM, MSOLVE, NSAVE,          SLAP........837100
+C    $     ITOL, TOL, ITMAX, ITER, ERR, IERR, IUNIT, R, Z, P, AP,        SLAP........837200
+C    $     EMAP, DZ, CSAV, RWORK, IWORK, AK, BNRM, SOLNRM)               SLAP........837300
+C    $     .NE.0 ) THEN ITERATION CONVERGED                              SLAP........837400
+C                                                                        SLAP........837500
+C *Arguments:                                                            SLAP........837600
+C N      :IN       Integer.                                              SLAP........837700
+C         Order of the matrix.                                           SLAP........837800
+C B      :IN       Double Precision B(N).                                SLAP........837900
+C         Right-hand side vector.                                        SLAP........838000
+C X      :IN       Double Precision X(N).                                SLAP........838100
+C         On input X is your initial guess for solution vector.          SLAP........838200
+C         On output X is the final approximate solution.                 SLAP........838300
+C NELT   :IN       Integer.                                              SLAP........838400
+C         Number of Non-Zeros stored in A.                               SLAP........838500
+C IA     :IN       Integer IA(NELT).                                     SLAP........838600
+C JA     :IN       Integer JA(NELT).                                     SLAP........838700
+C A      :IN       Double Precision A(NELT).                             SLAP........838800
+C         These arrays should hold the matrix A in either the SLAP       SLAP........838900
+C         Triad format or the SLAP Column format.  See "Description"     SLAP........839000
+C         in the DSDOMN or DSLUOM prologue.                              SLAP........839100
+C ISYM   :IN       Integer.                                              SLAP........839200
+C         Flag to indicate symmetric storage format.                     SLAP........839300
+C         If ISYM=0, all non-zero entries of the matrix are stored.      SLAP........839400
+C         If ISYM=1, the matrix is symmetric, and only the upper         SLAP........839500
+C         or lower triangle of the matrix is stored.                     SLAP........839600
+C MSOLVE :EXT      External.                                             SLAP........839700
+C         Name of a routine which solves a linear system MZ = R for      SLAP........839800
+C         Z given R with the preconditioning matrix M (M is supplied via SLAP........839900
+C         RWORK and IWORK arrays).  The name of the MSOLVE routine must  SLAP........840000
+C         be declared external in the calling program.  The calling      SLAP........840100
+C         sequence to MSOLVE is:                                         SLAP........840200
+C             CALL MSOLVE(N, R, Z, NELT, IA, JA, A, ISYM, RWORK, IWORK)  SLAP........840300
+C         Where N is the number of unknowns, R is the right-hand side    SLAP........840400
+C         vector and Z is the solution upon return.  NELT, IA, JA, A and SLAP........840500
+C         ISYM are defined as above.  RWORK is a double precision array  SLAP........840600
+C         that can be used to pass necessary preconditioning information SLAP........840700
+C         and/or workspace to MSOLVE.  IWORK is an integer work array    SLAP........840800
+C         for the same purpose as RWORK.                                 SLAP........840900
+C NSAVE  :IN       Integer.                                              SLAP........841000
+C         Number of direction vectors to save and orthogonalize against. SLAP........841100
+C ITOL   :IN       Integer.                                              SLAP........841200
+C         Flag to indicate type of convergence criterion.                SLAP........841300
+C         If ITOL=1, iteration stops when the 2-norm of the residual     SLAP........841400
+C         divided by the 2-norm of the right-hand side is less than TOL. SLAP........841500
+C         If ITOL=2, iteration stops when the 2-norm of M-inv times the  SLAP........841600
+C         residual divided by the 2-norm of M-inv times the right hand   SLAP........841700
+C         side is less than TOL, where M-inv is the inverse of the       SLAP........841800
+C         diagonal of A.                                                 SLAP........841900
+C         ITOL=11 is often useful for checking and comparing different   SLAP........842000
+C         routines.  For this case, the user must supply the "exact"     SLAP........842100
+C         solution or a very accurate approximation (one with an error   SLAP........842200
+C         much less than TOL) through a common block,                    SLAP........842300
+C             COMMON /DSLBLK/ SOLN( )                                    SLAP........842400
+C         If ITOL=11, iteration stops when the 2-norm of the difference  SLAP........842500
+C         between the iterative approximation and the user-supplied      SLAP........842600
+C         solution divided by the 2-norm of the user-supplied solution   SLAP........842700
+C         is less than TOL.  Note that this requires the user to set up  SLAP........842800
+C         the "COMMON /DSLBLK/ SOLN(LENGTH)" in the calling routine.     SLAP........842900
+C         The routine with this declaration should be loaded before the  SLAP........843000
+C         stop test so that the correct length is used by the loader.    SLAP........843100
+C         This procedure is not standard Fortran and may not work        SLAP........843200
+C         correctly on your system (although it has worked on every      SLAP........843300
+C         system the authors have tried).  If ITOL is not 11 then this   SLAP........843400
+C         common block is indeed standard Fortran.                       SLAP........843500
+C TOL    :IN       Double Precision.                                     SLAP........843600
+C         Convergence criterion, as described above.                     SLAP........843700
+C ITMAX  :IN       Integer.                                              SLAP........843800
+C         Maximum number of iterations.                                  SLAP........843900
+C ITER   :IN       Integer.                                              SLAP........844000
+C         Current iteration count.  (Must be zero on first call.)        SLAP........844100
+C ERR    :OUT      Double Precision.                                     SLAP........844200
+C         Error estimate of error in final approximate solution, as      SLAP........844300
+C         defined by ITOL.                                               SLAP........844400
+C IERR   :OUT      Integer.                                              SLAP........844500
+C         Error flag.  IERR is set to 3 if ITOL is not one of the        SLAP........844600
+C         acceptable values, see above.                                  SLAP........844700
+C IUNIT  :IN       Integer.                                              SLAP........844800
+C         Unit number on which to write the error at each iteration,     SLAP........844900
+C         if this is desired for monitoring convergence.  If unit        SLAP........845000
+C         number is 0, no writing will occur.                            SLAP........845100
+C R      :IN       Double Precision R(N).                                SLAP........845200
+C         The residual R = B-AX.                                         SLAP........845300
+C Z      :WORK     Double Precision Z(N).                                SLAP........845400
+C P      :IN       Double Precision P(N,0:NSAVE).                        SLAP........845500
+C         Workspace used to hold the conjugate direction vector(s).      SLAP........845600
+C AP     :IN       Double Precision AP(N,0:NSAVE).                       SLAP........845700
+C         Workspace used to hold the matrix A times the P vector(s).     SLAP........845800
+C EMAP   :IN       Double Precision EMAP(N,0:NSAVE).                     SLAP........845900
+C         Workspace used to hold M-inv times the AP vector(s).           SLAP........846000
+C DZ     :WORK     Double Precision DZ(N).                               SLAP........846100
+C         Workspace.                                                     SLAP........846200
+C CSAV   :DUMMY    Double Precision CSAV(NSAVE)                          SLAP........846300
+C         Reserved for future use.                                       SLAP........846400
+C RWORK  :WORK     Double Precision RWORK(USER DEFINED).                 SLAP........846500
+C         Double Precision array that can be used for workspace in       SLAP........846600
+C         MSOLVE.                                                        SLAP........846700
+C IWORK  :WORK     Integer IWORK(USER DEFINED).                          SLAP........846800
+C         Integer array that can be used for workspace in MSOLVE.        SLAP........846900
+C AK     :IN       Double Precision.                                     SLAP........847000
+C         Current iterate Orthomin iteration parameter.                  SLAP........847100
+C BNRM   :OUT      Double Precision.                                     SLAP........847200
+C         Current solution B-norm, if ITOL = 1 or 2.                     SLAP........847300
+C SOLNRM :OUT      Double Precision.                                     SLAP........847400
+C         True solution norm, if ITOL = 11.                              SLAP........847500
+C                                                                        SLAP........847600
+C *Function Return Values:                                               SLAP........847700
+C       0 : Error estimate (determined by ITOL) is *NOT* less than the   SLAP........847800
+C           specified tolerance, TOL.  The iteration must continue.      SLAP........847900
+C       1 : Error estimate (determined by ITOL) is less than the         SLAP........848000
+C           specified tolerance, TOL.  The iteration can be considered   SLAP........848100
+C           complete.                                                    SLAP........848200
+C                                                                        SLAP........848300
+C *Cautions:                                                             SLAP........848400
+C     This routine will attempt to write to the Fortran logical output   SLAP........848500
+C     unit IUNIT, if IUNIT .ne. 0.  Thus, the user must make sure that   SLAP........848600
+C     this logical unit is attached to a file or terminal before calling SLAP........848700
+C     this routine with a non-zero value for IUNIT.  This routine does   SLAP........848800
+C     not check for the validity of a non-zero IUNIT unit number.        SLAP........848900
+C                                                                        SLAP........849000
+C***SEE ALSO  DOMN, DSDOMN, DSLUOM                                       SLAP........849100
+C***ROUTINES CALLED  D1MACH, DNRM2                                       SLAP........849200
+C***COMMON BLOCKS    DSLBLK                                              SLAP........849300
+C***REVISION HISTORY  (YYMMDD)                                           SLAP........849400
+C   890404  DATE WRITTEN                                                 SLAP........849500
+C   890404  Previous REVISION DATE                                       SLAP........849600
+C   890915  Made changes requested at July 1989 CML Meeting.  (MKS)      SLAP........849700
+C   890922  Numerous changes to prologue to make closer to SLATEC        SLAP........849800
+C           standard.  (FNF)                                             SLAP........849900
+C   890929  Numerous changes to reduce SP/DP differences.  (FNF)         SLAP........850000
+C   891003  Removed C***REFER TO line, per MKS.                          SLAP........850100
+C   910411  Prologue converted to Version 4.0 format.  (BAB)             SLAP........850200
+C   910502  Removed MSOLVE from ROUTINES CALLED list.  (FNF)             SLAP........850300
+C   910506  Made subsidiary to DOMN.  (FNF)                              SLAP........850400
+C   920407  COMMON BLOCK renamed DSLBLK.  (WRB)                          SLAP........850500
+C   920511  Added complete declaration section.  (WRB)                   SLAP........850600
+C   920930  Corrected to not print AK when ITER=0.  (FNF)                SLAP........850700
+C   921026  Changed 1.0E10 to D1MACH(2) and corrected D to E in          SLAP........850800
+C           output format.  (FNF)                                        SLAP........850900
+C   921113  Corrected C***CATEGORY line.  (FNF)                          SLAP........851000
+C***END PROLOGUE  ISDOMN                                                 SLAP........851100
+C     .. Scalar Arguments ..                                             SLAP........851200
+      DOUBLE PRECISION AK, BNRM, ERR, SOLNRM, TOL                        SLAP........851300
+      INTEGER IERR, ISYM, ITER, ITMAX, ITOL, IUNIT, N, NELT, NSAVE       SLAP........851400
+C     .. Array Arguments ..                                              SLAP........851500
+      DOUBLE PRECISION A(NELT), AP(N,0:NSAVE), B(N), CSAV(NSAVE),        SLAP........851600
+     +                 DZ(N), EMAP(N,0:NSAVE), P(N,0:NSAVE), R(N),       SLAP........851700
+     +                 RWORK(*), X(N), Z(N)                              SLAP........851800
+      INTEGER IA(NELT), IWORK(*), JA(NELT)                               SLAP........851900
+C     .. Subroutine Arguments ..                                         SLAP........852000
+      EXTERNAL MSOLVE                                                    SLAP........852100
+C     .. Arrays in Common ..                                             SLAP........852200
+      DOUBLE PRECISION SOLN(1)                                           SLAP........852300
+C     .. Local Scalars ..                                                SLAP........852400
+      INTEGER I                                                          SLAP........852500
+C     .. External Functions ..                                           SLAP........852600
+      DOUBLE PRECISION D1MACH, DNRM2                                     SLAP........852700
+      EXTERNAL D1MACH, DNRM2                                             SLAP........852800
+C     .. Common blocks ..                                                SLAP........852900
+      COMMON /DSLBLK/ SOLN                                               SLAP........853000
+C***FIRST EXECUTABLE STATEMENT  ISDOMN                                   SLAP........853100
+      ISDOMN = 0                                                         SLAP........853200
+C                                                                        SLAP........853300
+      IF( ITOL.EQ.1 ) THEN                                               SLAP........853400
+C         err = ||Residual||/||RightHandSide|| (2-Norms).                SLAP........853500
+         IF(ITER .EQ. 0) BNRM = DNRM2(N, B, 1)                           SLAP........853600
+         ERR = DNRM2(N, R, 1)/BNRM                                       SLAP........853700
+      ELSE IF( ITOL.EQ.2 ) THEN                                          SLAP........853800
+C                  -1              -1                                    SLAP........853900
+C         err = ||M  Residual||/||M  RightHandSide|| (2-Norms).          SLAP........854000
+         IF(ITER .EQ. 0) THEN                                            SLAP........854100
+            CALL MSOLVE(N, B, DZ, NELT, IA, JA, A, ISYM, RWORK, IWORK)   SLAP........854200
+            BNRM = DNRM2(N, DZ, 1)                                       SLAP........854300
+         ENDIF                                                           SLAP........854400
+         ERR = DNRM2(N, Z, 1)/BNRM                                       SLAP........854500
+      ELSE IF( ITOL.EQ.11 ) THEN                                         SLAP........854600
+C         err = ||x-TrueSolution||/||TrueSolution|| (2-Norms).           SLAP........854700
+         IF(ITER .EQ. 0) SOLNRM = DNRM2(N, SOLN, 1)                      SLAP........854800
+         DO 10 I = 1, N                                                  SLAP........854900
+            DZ(I) = X(I) - SOLN(I)                                       SLAP........855000
+ 10      CONTINUE                                                        SLAP........855100
+         ERR = DNRM2(N, DZ, 1)/SOLNRM                                    SLAP........855200
+      ELSE                                                               SLAP........855300
+C                                                                        SLAP........855400
+C         If we get here ITOL is not one of the acceptable values.       SLAP........855500
+         ERR = D1MACH(2)                                                 SLAP........855600
+         IERR = 3                                                        SLAP........855700
+      ENDIF                                                              SLAP........855800
+C                                                                        SLAP........855900
+C.....THE BLOCK IF STATEMENT THAT IMMEDIATELY FOLLOWS THIS COMMMENT      SLAP........856000
+C        WAS MODIFIED DURING INTEGRATION OF SLAP WITH SUTRA.  IT         SLAP........856100
+C        ORIGINALLY READ:                                                SLAP........856200
+C        IF(IUNIT .NE. 0) THEN                                           SLAP........856300
+C           IF( ITER.EQ.0 ) THEN                                         SLAP........856400
+C              WRITE(IUNIT,1000) NSAVE, N, ITOL                          SLAP........856500
+C              WRITE(IUNIT,1010) ITER, ERR                               SLAP........856600
+C           ELSE                                                         SLAP........856700
+C              WRITE(IUNIT,1010) ITER, ERR, AK                           SLAP........856800
+C           ENDIF                                                        SLAP........856900
+C        ENDIF                                                           SLAP........857000
+      IF(IUNIT .NE. 0) THEN                                              SLAP........857100
+         IF( ITER.EQ.0 ) WRITE(IUNIT,1000)                               SLAP........857200
+         WRITE(IUNIT,1010) ITER, ERR                                     SLAP........857300
+      ENDIF                                                              SLAP........857400
+      IF(ERR .LE. TOL) ISDOMN = 1                                        SLAP........857500
+C                                                                        SLAP........857600
+      RETURN                                                             SLAP........857700
+C.....THE NEXT TWO LINES OF CODE REFLECT MODIFICATIONS MADE DURING       SLAP........857800
+C        INTEGRATION OF SLAP WITH SUTRA.  THEY ORIGINALLY READ:          SLAP........857900
+C        1000 FORMAT(' Preconditioned Orthomin(',I3,') for ',            SLAP........858000
+C            $     'N, ITOL = ',I5, I5,                                  SLAP........858100
+C            $     /' ITER','   Error Estimate','            Alpha')     SLAP........858200
+C        1010 FORMAT(1X,I4,1X,D16.7,1X,D16.7)                            SLAP........858300
+1000  FORMAT(1X,6X,'Solver Iteration','   Error Estimate')               SLAP........858400
+1010  FORMAT(1X,6X,I16,1X,1PE16.7)                                       SLAP........858500
+C------------- LAST LINE OF ISDOMN FOLLOWS ----------------------------  SLAP........858600
+      END                                                                SLAP........858700
+*DECK J4SAVE                                                             SLAP........858800
+      FUNCTION J4SAVE (IWHICH, IVALUE, ISET)                             SLAP........858900
+C***BEGIN PROLOGUE  J4SAVE                                               SLAP........859000
+C***SUBSIDIARY                                                           SLAP........859100
+C***PURPOSE  Save or recall global variables needed by error             SLAP........859200
+C            handling routines.                                          SLAP........859300
+C***LIBRARY   SLATEC (XERROR)                                            SLAP........859400
+C***TYPE      INTEGER (J4SAVE-I)                                         SLAP........859500
+C***KEYWORDS  ERROR MESSAGES, ERROR NUMBER, RECALL, SAVE, XERROR         SLAP........859600
+C***AUTHOR  Jones, R. E., (SNLA)                                         SLAP........859700
+C***DESCRIPTION                                                          SLAP........859800
+C                                                                        SLAP........859900
+C     Abstract                                                           SLAP........860000
+C        J4SAVE saves and recalls several global variables needed        SLAP........860100
+C        by the library error handling routines.                         SLAP........860200
+C                                                                        SLAP........860300
+C     Description of Parameters                                          SLAP........860400
+C      --Input--                                                         SLAP........860500
+C        IWHICH - Index of item desired.                                 SLAP........860600
+C                = 1 Refers to current error number.                     SLAP........860700
+C                = 2 Refers to current error control flag.               SLAP........860800
+C                = 3 Refers to current unit number to which error        SLAP........860900
+C                    messages are to be sent.  (0 means use standard.)   SLAP........861000
+C                = 4 Refers to the maximum number of times any           SLAP........861100
+C                     message is to be printed (as set by XERMAX).       SLAP........861200
+C                = 5 Refers to the total number of units to which        SLAP........861300
+C                     each error message is to be written.               SLAP........861400
+C                = 6 Refers to the 2nd unit for error messages           SLAP........861500
+C                = 7 Refers to the 3rd unit for error messages           SLAP........861600
+C                = 8 Refers to the 4th unit for error messages           SLAP........861700
+C                = 9 Refers to the 5th unit for error messages           SLAP........861800
+C        IVALUE - The value to be set for the IWHICH-th parameter,       SLAP........861900
+C                 if ISET is .TRUE. .                                    SLAP........862000
+C        ISET   - If ISET=.TRUE., the IWHICH-th parameter will BE        SLAP........862100
+C                 given the value, IVALUE.  If ISET=.FALSE., the         SLAP........862200
+C                 IWHICH-th parameter will be unchanged, and IVALUE      SLAP........862300
+C                 is a dummy parameter.                                  SLAP........862400
+C      --Output--                                                        SLAP........862500
+C        The (old) value of the IWHICH-th parameter will be returned     SLAP........862600
+C        in the function value, J4SAVE.                                  SLAP........862700
+C                                                                        SLAP........862800
+C***SEE ALSO  XERMSG                                                     SLAP........862900
+C***REFERENCES  R. E. Jones and D. K. Kahaner, XERROR, the SLATEC        SLAP........863000
+C                 Error-handling Package, SAND82-0800, Sandia            SLAP........863100
+C                 Laboratories, 1982.                                    SLAP........863200
+C***ROUTINES CALLED  (NONE)                                              SLAP........863300
+C***REVISION HISTORY  (YYMMDD)                                           SLAP........863400
+C   790801  DATE WRITTEN                                                 SLAP........863500
+C   891214  Prologue converted to Version 4.0 format.  (BAB)             SLAP........863600
+C   900205  Minor modifications to prologue.  (WRB)                      SLAP........863700
+C   900402  Added TYPE section.  (WRB)                                   SLAP........863800
+C   910411  Added KEYWORDS section.  (WRB)                               SLAP........863900
+C   920501  Reformatted the REFERENCES section.  (WRB)                   SLAP........864000
+C***END PROLOGUE  J4SAVE                                                 SLAP........864100
+      LOGICAL ISET                                                       SLAP........864200
+      INTEGER IPARAM(9)                                                  SLAP........864300
+      SAVE IPARAM                                                        SLAP........864400
+      DATA IPARAM(1),IPARAM(2),IPARAM(3),IPARAM(4)/0,2,0,10/             SLAP........864500
+      DATA IPARAM(5)/1/                                                  SLAP........864600
+      DATA IPARAM(6),IPARAM(7),IPARAM(8),IPARAM(9)/0,0,0,0/              SLAP........864700
+C***FIRST EXECUTABLE STATEMENT  J4SAVE                                   SLAP........864800
+      J4SAVE = IPARAM(IWHICH)                                            SLAP........864900
+      IF (ISET) IPARAM(IWHICH) = IVALUE                                  SLAP........865000
+      RETURN                                                             SLAP........865100
+      END                                                                SLAP........865200
+*DECK QS2I1D                                                             SLAP........865300
+      SUBROUTINE QS2I1D (IA, JA, A, N, KFLAG)                            SLAP........865400
+C***BEGIN PROLOGUE  QS2I1D                                               SLAP........865500
+C***SUBSIDIARY                                                           SLAP........865600
+C***PURPOSE  Sort an integer array, moving an integer and DP array.      SLAP........865700
+C            This routine sorts the integer array IA and makes the same  SLAP........865800
+C            interchanges in the integer array JA and the double pre-    SLAP........865900
+C            cision array A.  The array IA may be sorted in increasing   SLAP........866000
+C            order or decreasing order.  A slightly modified QUICKSORT   SLAP........866100
+C            algorithm is used.                                          SLAP........866200
+C***LIBRARY   SLATEC (SLAP)                                              SLAP........866300
+C***CATEGORY  N6A2A                                                      SLAP........866400
+C***TYPE      DOUBLE PRECISION (QS2I1R-S, QS2I1D-D)                      SLAP........866500
+C***KEYWORDS  SINGLETON QUICKSORT, SLAP, SORT, SORTING                   SLAP........866600
+C***AUTHOR  Jones, R. E., (SNLA)                                         SLAP........866700
+C           Kahaner, D. K., (NBS)                                        SLAP........866800
+C           Seager, M. K., (LLNL) seager@llnl.gov                        SLAP........866900
+C           Wisniewski, J. A., (SNLA)                                    SLAP........867000
+C***DESCRIPTION                                                          SLAP........867100
+C     Written by Rondall E Jones                                         SLAP........867200
+C     Modified by John A. Wisniewski to use the Singleton QUICKSORT      SLAP........867300
+C     algorithm. date 18 November 1976.                                  SLAP........867400
+C                                                                        SLAP........867500
+C     Further modified by David K. Kahaner                               SLAP........867600
+C     National Bureau of Standards                                       SLAP........867700
+C     August, 1981                                                       SLAP........867800
+C                                                                        SLAP........867900
+C     Even further modification made to bring the code up to the         SLAP........868000
+C     Fortran 77 level and make it more readable and to carry            SLAP........868100
+C     along one integer array and one double precision array during      SLAP........868200
+C     the sort by                                                        SLAP........868300
+C     Mark K. Seager                                                     SLAP........868400
+C     Lawrence Livermore National Laboratory                             SLAP........868500
+C     November, 1987                                                     SLAP........868600
+C     This routine was adapted from the ISORT routine.                   SLAP........868700
+C                                                                        SLAP........868800
+C     ABSTRACT                                                           SLAP........868900
+C         This routine sorts an integer array IA and makes the same      SLAP........869000
+C         interchanges in the integer array JA and the double precision  SLAP........869100
+C         array A.                                                       SLAP........869200
+C         The array IA may be sorted in increasing order or decreasing   SLAP........869300
+C         order.  A slightly modified quicksort algorithm is used.       SLAP........869400
+C                                                                        SLAP........869500
+C     DESCRIPTION OF PARAMETERS                                          SLAP........869600
+C        IA - Integer array of values to be sorted.                      SLAP........869700
+C        JA - Integer array to be carried along.                         SLAP........869800
+C         A - Double Precision array to be carried along.                SLAP........869900
+C         N - Number of values in integer array IA to be sorted.         SLAP........870000
+C     KFLAG - Control parameter                                          SLAP........870100
+C           = 1 means sort IA in INCREASING order.                       SLAP........870200
+C           =-1 means sort IA in DECREASING order.                       SLAP........870300
+C                                                                        SLAP........870400
+C***SEE ALSO  DS2Y                                                       SLAP........870500
+C***REFERENCES  R. C. Singleton, Algorithm 347, An Efficient Algorithm   SLAP........870600
+C                 for Sorting With Minimal Storage, Communications ACM   SLAP........870700
+C                 12:3 (1969), pp.185-7.                                 SLAP........870800
+C***ROUTINES CALLED  XERMSG                                              SLAP........870900
+C***REVISION HISTORY  (YYMMDD)                                           SLAP........871000
+C   761118  DATE WRITTEN                                                 SLAP........871100
+C   890125  Previous REVISION DATE                                       SLAP........871200
+C   890915  Made changes requested at July 1989 CML Meeting.  (MKS)      SLAP........871300
+C   890922  Numerous changes to prologue to make closer to SLATEC        SLAP........871400
+C           standard.  (FNF)                                             SLAP........871500
+C   890929  Numerous changes to reduce SP/DP differences.  (FNF)         SLAP........871600
+C   900805  Changed XERROR calls to calls to XERMSG.  (RWC)              SLAP........871700
+C   910411  Prologue converted to Version 4.0 format.  (BAB)             SLAP........871800
+C   910506  Made subsidiary to DS2Y and corrected reference.  (FNF)      SLAP........871900
+C   920511  Added complete declaration section.  (WRB)                   SLAP........872000
+C   920929  Corrected format of reference.  (FNF)                        SLAP........872100
+C   921012  Corrected all f.p. constants to double precision.  (FNF)     SLAP........872200
+C***END PROLOGUE  QS2I1D                                                 SLAP........872300
+CVD$R NOVECTOR                                                           SLAP........872400
+CVD$R NOCONCUR                                                           SLAP........872500
+C     .. Scalar Arguments ..                                             SLAP........872600
+      INTEGER KFLAG, N                                                   SLAP........872700
+C     .. Array Arguments ..                                              SLAP........872800
+      DOUBLE PRECISION A(N)                                              SLAP........872900
+      INTEGER IA(N), JA(N)                                               SLAP........873000
+C     .. Local Scalars ..                                                SLAP........873100
+      DOUBLE PRECISION R, TA, TTA                                        SLAP........873200
+      INTEGER I, IIT, IJ, IT, J, JJT, JT, K, KK, L, M, NN                SLAP........873300
+C     .. Local Arrays ..                                                 SLAP........873400
+      INTEGER IL(21), IU(21)                                             SLAP........873500
+C     .. External Subroutines ..                                         SLAP........873600
+      EXTERNAL XERMSG                                                    SLAP........873700
+C     .. Intrinsic Functions ..                                          SLAP........873800
+      INTRINSIC ABS, INT                                                 SLAP........873900
+C***FIRST EXECUTABLE STATEMENT  QS2I1D                                   SLAP........874000
+      NN = N                                                             SLAP........874100
+      IF (NN.LT.1) THEN                                                  SLAP........874200
+         CALL XERMSG ('SLATEC', 'QS2I1D',                                SLAP........874300
+     $      'The number of values to be sorted was not positive.', 1, 1) SLAP........874400
+         RETURN                                                          SLAP........874500
+      ENDIF                                                              SLAP........874600
+      IF( N.EQ.1 ) RETURN                                                SLAP........874700
+      KK = ABS(KFLAG)                                                    SLAP........874800
+      IF ( KK.NE.1 ) THEN                                                SLAP........874900
+         CALL XERMSG ('SLATEC', 'QS2I1D',                                SLAP........875000
+     $      'The sort control parameter, K, was not 1 or -1.', 2, 1)     SLAP........875100
+         RETURN                                                          SLAP........875200
+      ENDIF                                                              SLAP........875300
+C                                                                        SLAP........875400
+C     Alter array IA to get decreasing order if needed.                  SLAP........875500
+C                                                                        SLAP........875600
+      IF( KFLAG.LT.1 ) THEN                                              SLAP........875700
+         DO 20 I=1,NN                                                    SLAP........875800
+            IA(I) = -IA(I)                                               SLAP........875900
+ 20      CONTINUE                                                        SLAP........876000
+      ENDIF                                                              SLAP........876100
+C                                                                        SLAP........876200
+C     Sort IA and carry JA and A along.                                  SLAP........876300
+C     And now...Just a little black magic...                             SLAP........876400
+      M = 1                                                              SLAP........876500
+      I = 1                                                              SLAP........876600
+      J = NN                                                             SLAP........876700
+      R = .375D0                                                         SLAP........876800
+ 210  IF( R.LE.0.5898437D0 ) THEN                                        SLAP........876900
+         R = R + 3.90625D-2                                              SLAP........877000
+      ELSE                                                               SLAP........877100
+         R = R-.21875D0                                                  SLAP........877200
+      ENDIF                                                              SLAP........877300
+ 225  K = I                                                              SLAP........877400
 C                                                                        SLAP........877500
-      IJ = I + INT ((J-I)*R)                                             SLAP........877600
-      IT = IA(IJ)                                                        SLAP........877700
-      JT = JA(IJ)                                                        SLAP........877800
-      TA = A(IJ)                                                         SLAP........877900
-C                                                                        SLAP........878000
-C     If first element of array is greater than it, interchange with it. SLAP........878100
-C                                                                        SLAP........878200
-      IF( IA(I).GT.IT ) THEN                                             SLAP........878300
-         IA(IJ) = IA(I)                                                  SLAP........878400
-         IA(I)  = IT                                                     SLAP........878500
-         IT     = IA(IJ)                                                 SLAP........878600
-         JA(IJ) = JA(I)                                                  SLAP........878700
-         JA(I)  = JT                                                     SLAP........878800
-         JT     = JA(IJ)                                                 SLAP........878900
-         A(IJ)  = A(I)                                                   SLAP........879000
-         A(I)   = TA                                                     SLAP........879100
-         TA     = A(IJ)                                                  SLAP........879200
-      ENDIF                                                              SLAP........879300
-      L=J                                                                SLAP........879400
-C                                                                        SLAP........879500
-C     If last element of array is less than it, swap with it.            SLAP........879600
-C                                                                        SLAP........879700
-      IF( IA(J).LT.IT ) THEN                                             SLAP........879800
-         IA(IJ) = IA(J)                                                  SLAP........879900
-         IA(J)  = IT                                                     SLAP........880000
-         IT     = IA(IJ)                                                 SLAP........880100
-         JA(IJ) = JA(J)                                                  SLAP........880200
-         JA(J)  = JT                                                     SLAP........880300
-         JT     = JA(IJ)                                                 SLAP........880400
-         A(IJ)  = A(J)                                                   SLAP........880500
-         A(J)   = TA                                                     SLAP........880600
-         TA     = A(IJ)                                                  SLAP........880700
-C                                                                        SLAP........880800
-C     If first element of array is greater than it, swap with it.        SLAP........880900
-C                                                                        SLAP........881000
-         IF ( IA(I).GT.IT ) THEN                                         SLAP........881100
-            IA(IJ) = IA(I)                                               SLAP........881200
-            IA(I)  = IT                                                  SLAP........881300
-            IT     = IA(IJ)                                              SLAP........881400
-            JA(IJ) = JA(I)                                               SLAP........881500
-            JA(I)  = JT                                                  SLAP........881600
-            JT     = JA(IJ)                                              SLAP........881700
-            A(IJ)  = A(I)                                                SLAP........881800
-            A(I)   = TA                                                  SLAP........881900
-            TA     = A(IJ)                                               SLAP........882000
-         ENDIF                                                           SLAP........882100
-      ENDIF                                                              SLAP........882200
-C                                                                        SLAP........882300
-C     Find an element in the second half of the array which is           SLAP........882400
-C     smaller than it.                                                   SLAP........882500
+C     Select a central element of the array and save it in location      SLAP........877600
+C     it, jt, at.                                                        SLAP........877700
+C                                                                        SLAP........877800
+      IJ = I + INT ((J-I)*R)                                             SLAP........877900
+      IT = IA(IJ)                                                        SLAP........878000
+      JT = JA(IJ)                                                        SLAP........878100
+      TA = A(IJ)                                                         SLAP........878200
+C                                                                        SLAP........878300
+C     If first element of array is greater than it, interchange with it. SLAP........878400
+C                                                                        SLAP........878500
+      IF( IA(I).GT.IT ) THEN                                             SLAP........878600
+         IA(IJ) = IA(I)                                                  SLAP........878700
+         IA(I)  = IT                                                     SLAP........878800
+         IT     = IA(IJ)                                                 SLAP........878900
+         JA(IJ) = JA(I)                                                  SLAP........879000
+         JA(I)  = JT                                                     SLAP........879100
+         JT     = JA(IJ)                                                 SLAP........879200
+         A(IJ)  = A(I)                                                   SLAP........879300
+         A(I)   = TA                                                     SLAP........879400
+         TA     = A(IJ)                                                  SLAP........879500
+      ENDIF                                                              SLAP........879600
+      L=J                                                                SLAP........879700
+C                                                                        SLAP........879800
+C     If last element of array is less than it, swap with it.            SLAP........879900
+C                                                                        SLAP........880000
+      IF( IA(J).LT.IT ) THEN                                             SLAP........880100
+         IA(IJ) = IA(J)                                                  SLAP........880200
+         IA(J)  = IT                                                     SLAP........880300
+         IT     = IA(IJ)                                                 SLAP........880400
+         JA(IJ) = JA(J)                                                  SLAP........880500
+         JA(J)  = JT                                                     SLAP........880600
+         JT     = JA(IJ)                                                 SLAP........880700
+         A(IJ)  = A(J)                                                   SLAP........880800
+         A(J)   = TA                                                     SLAP........880900
+         TA     = A(IJ)                                                  SLAP........881000
+C                                                                        SLAP........881100
+C     If first element of array is greater than it, swap with it.        SLAP........881200
+C                                                                        SLAP........881300
+         IF ( IA(I).GT.IT ) THEN                                         SLAP........881400
+            IA(IJ) = IA(I)                                               SLAP........881500
+            IA(I)  = IT                                                  SLAP........881600
+            IT     = IA(IJ)                                              SLAP........881700
+            JA(IJ) = JA(I)                                               SLAP........881800
+            JA(I)  = JT                                                  SLAP........881900
+            JT     = JA(IJ)                                              SLAP........882000
+            A(IJ)  = A(I)                                                SLAP........882100
+            A(I)   = TA                                                  SLAP........882200
+            TA     = A(IJ)                                               SLAP........882300
+         ENDIF                                                           SLAP........882400
+      ENDIF                                                              SLAP........882500
 C                                                                        SLAP........882600
-  240 L=L-1                                                              SLAP........882700
-      IF( IA(L).GT.IT ) GO TO 240                                        SLAP........882800
+C     Find an element in the second half of the array which is           SLAP........882700
+C     smaller than it.                                                   SLAP........882800
 C                                                                        SLAP........882900
-C     Find an element in the first half of the array which is            SLAP........883000
-C     greater than it.                                                   SLAP........883100
+  240 L=L-1                                                              SLAP........883000
+      IF( IA(L).GT.IT ) GO TO 240                                        SLAP........883100
 C                                                                        SLAP........883200
-  245 K=K+1                                                              SLAP........883300
-      IF( IA(K).LT.IT ) GO TO 245                                        SLAP........883400
+C     Find an element in the first half of the array which is            SLAP........883300
+C     greater than it.                                                   SLAP........883400
 C                                                                        SLAP........883500
-C     Interchange these elements.                                        SLAP........883600
-C                                                                        SLAP........883700
-      IF( K.LE.L ) THEN                                                  SLAP........883800
-         IIT   = IA(L)                                                   SLAP........883900
-         IA(L) = IA(K)                                                   SLAP........884000
-         IA(K) = IIT                                                     SLAP........884100
-         JJT   = JA(L)                                                   SLAP........884200
-         JA(L) = JA(K)                                                   SLAP........884300
-         JA(K) = JJT                                                     SLAP........884400
-         TTA   = A(L)                                                    SLAP........884500
-         A(L)  = A(K)                                                    SLAP........884600
-         A(K)  = TTA                                                     SLAP........884700
-         GOTO 240                                                        SLAP........884800
-      ENDIF                                                              SLAP........884900
-C                                                                        SLAP........885000
-C     Save upper and lower subscripts of the array yet to be sorted.     SLAP........885100
-C                                                                        SLAP........885200
-      IF( L-I.GT.J-K ) THEN                                              SLAP........885300
-         IL(M) = I                                                       SLAP........885400
-         IU(M) = L                                                       SLAP........885500
-         I = K                                                           SLAP........885600
-         M = M+1                                                         SLAP........885700
-      ELSE                                                               SLAP........885800
-         IL(M) = K                                                       SLAP........885900
-         IU(M) = J                                                       SLAP........886000
-         J = L                                                           SLAP........886100
-         M = M+1                                                         SLAP........886200
-      ENDIF                                                              SLAP........886300
-      GO TO 260                                                          SLAP........886400
-C                                                                        SLAP........886500
-C     Begin again on another portion of the unsorted array.              SLAP........886600
-C                                                                        SLAP........886700
-  255 M = M-1                                                            SLAP........886800
-      IF( M.EQ.0 ) GO TO 300                                             SLAP........886900
-      I = IL(M)                                                          SLAP........887000
-      J = IU(M)                                                          SLAP........887100
-  260 IF( J-I.GE.1 ) GO TO 225                                           SLAP........887200
-      IF( I.EQ.J ) GO TO 255                                             SLAP........887300
-      IF( I.EQ.1 ) GO TO 210                                             SLAP........887400
-      I = I-1                                                            SLAP........887500
-  265 I = I+1                                                            SLAP........887600
-      IF( I.EQ.J ) GO TO 255                                             SLAP........887700
-      IT = IA(I+1)                                                       SLAP........887800
-      JT = JA(I+1)                                                       SLAP........887900
-      TA =  A(I+1)                                                       SLAP........888000
-      IF( IA(I).LE.IT ) GO TO 265                                        SLAP........888100
-      K=I                                                                SLAP........888200
-  270 IA(K+1) = IA(K)                                                    SLAP........888300
-      JA(K+1) = JA(K)                                                    SLAP........888400
-      A(K+1)  =  A(K)                                                    SLAP........888500
-      K = K-1                                                            SLAP........888600
-      IF( IT.LT.IA(K) ) GO TO 270                                        SLAP........888700
-      IA(K+1) = IT                                                       SLAP........888800
-      JA(K+1) = JT                                                       SLAP........888900
-      A(K+1)  = TA                                                       SLAP........889000
-      GO TO 265                                                          SLAP........889100
-C                                                                        SLAP........889200
-C     Clean up, if necessary.                                            SLAP........889300
-C                                                                        SLAP........889400
-  300 IF( KFLAG.LT.1 ) THEN                                              SLAP........889500
-         DO 310 I=1,NN                                                   SLAP........889600
-            IA(I) = -IA(I)                                               SLAP........889700
- 310     CONTINUE                                                        SLAP........889800
-      ENDIF                                                              SLAP........889900
-      RETURN                                                             SLAP........890000
-C------------- LAST LINE OF QS2I1D FOLLOWS ----------------------------  SLAP........890100
-      END                                                                SLAP........890200
-*DECK XERCNT                                                             SLAP........890300
-      SUBROUTINE XERCNT (LIBRAR, SUBROU, MESSG, NERR, LEVEL, KONTRL)     SLAP........890400
-C***BEGIN PROLOGUE  XERCNT                                               SLAP........890500
-C***SUBSIDIARY                                                           SLAP........890600
-C***PURPOSE  Allow user control over handling of errors.                 SLAP........890700
-C***LIBRARY   SLATEC (XERROR)                                            SLAP........890800
-C***CATEGORY  R3C                                                        SLAP........890900
-C***TYPE      ALL (XERCNT-A)                                             SLAP........891000
-C***KEYWORDS  ERROR, XERROR                                              SLAP........891100
-C***AUTHOR  Jones, R. E., (SNLA)                                         SLAP........891200
-C***DESCRIPTION                                                          SLAP........891300
-C                                                                        SLAP........891400
-C     Abstract                                                           SLAP........891500
-C        Allows user control over handling of individual errors.         SLAP........891600
-C        Just after each message is recorded, but before it is           SLAP........891700
-C        processed any further (i.e., before it is printed or            SLAP........891800
-C        a decision to abort is made), a call is made to XERCNT.         SLAP........891900
-C        If the user has provided his own version of XERCNT, he          SLAP........892000
-C        can then override the value of KONTROL used in processing       SLAP........892100
-C        this message by redefining its value.                           SLAP........892200
-C        KONTRL may be set to any value from -2 to 2.                    SLAP........892300
-C        The meanings for KONTRL are the same as in XSETF, except        SLAP........892400
-C        that the value of KONTRL changes only for this message.         SLAP........892500
-C        If KONTRL is set to a value outside the range from -2 to 2,     SLAP........892600
-C        it will be moved back into that range.                          SLAP........892700
-C                                                                        SLAP........892800
-C     Description of Parameters                                          SLAP........892900
-C                                                                        SLAP........893000
-C      --Input--                                                         SLAP........893100
-C        LIBRAR - the library that the routine is in.                    SLAP........893200
-C        SUBROU - the subroutine that XERMSG is being called from        SLAP........893300
-C        MESSG  - the first 20 characters of the error message.          SLAP........893400
-C        NERR   - same as in the call to XERMSG.                         SLAP........893500
-C        LEVEL  - same as in the call to XERMSG.                         SLAP........893600
-C        KONTRL - the current value of the control flag as set           SLAP........893700
-C                 by a call to XSETF.                                    SLAP........893800
-C                                                                        SLAP........893900
-C      --Output--                                                        SLAP........894000
-C        KONTRL - the new value of KONTRL.  If KONTRL is not             SLAP........894100
-C                 defined, it will remain at its original value.         SLAP........894200
-C                 This changed value of control affects only             SLAP........894300
-C                 the current occurrence of the current message.         SLAP........894400
-C                                                                        SLAP........894500
-C***REFERENCES  R. E. Jones and D. K. Kahaner, XERROR, the SLATEC        SLAP........894600
-C                 Error-handling Package, SAND82-0800, Sandia            SLAP........894700
-C                 Laboratories, 1982.                                    SLAP........894800
-C***ROUTINES CALLED  (NONE)                                              SLAP........894900
-C***REVISION HISTORY  (YYMMDD)                                           SLAP........895000
-C   790801  DATE WRITTEN                                                 SLAP........895100
-C   861211  REVISION DATE from Version 3.2                               SLAP........895200
-C   891214  Prologue converted to Version 4.0 format.  (BAB)             SLAP........895300
-C   900206  Routine changed from user-callable to subsidiary.  (WRB)     SLAP........895400
-C   900510  Changed calling sequence to include LIBRARY and SUBROUTINE   SLAP........895500
-C           names, changed routine name from XERCTL to XERCNT.  (RWC)    SLAP........895600
-C   920501  Reformatted the REFERENCES section.  (WRB)                   SLAP........895700
-C***END PROLOGUE  XERCNT                                                 SLAP........895800
-      CHARACTER*(*) LIBRAR, SUBROU, MESSG                                SLAP........895900
-C***FIRST EXECUTABLE STATEMENT  XERCNT                                   SLAP........896000
-C.....THE NEXT TWO NON-COMMENT LINES (ONE CONTINUED LINE) WERE ADDED     SLAP........896100
-C        DURING INTEGRATION OF SLAP WITH SUTRA.  THEY ALLOW THE SOLUTION SLAP........896200
-C        PROCESS TO CONTINUE IF THE IC FACTORIZATION FOR THE CG SOLVER   SLAP........896300
-C        IS FUDGED.                                                      SLAP........896400
-      IF ((LIBRAR.EQ.'SLATEC').AND.(SUBROU.EQ.'DSICCG').AND.             SLAP........896500
-     1    (MESSG(1:20).EQ.'IC factorization bro')) KONTRL = 0            SLAP........896600
-      RETURN                                                             SLAP........896700
-      END                                                                SLAP........896800
-*DECK XERHLT                                                             SLAP........896900
-      SUBROUTINE XERHLT (MESSG)                                          SLAP........897000
-C***BEGIN PROLOGUE  XERHLT                                               SLAP........897100
-C***SUBSIDIARY                                                           SLAP........897200
-C***PURPOSE  Abort program execution and print error message.            SLAP........897300
-C***LIBRARY   SLATEC (XERROR)                                            SLAP........897400
-C***CATEGORY  R3C                                                        SLAP........897500
-C***TYPE      ALL (XERHLT-A)                                             SLAP........897600
-C***KEYWORDS  ABORT PROGRAM EXECUTION, ERROR, XERROR                     SLAP........897700
-C***AUTHOR  Jones, R. E., (SNLA)                                         SLAP........897800
-C***DESCRIPTION                                                          SLAP........897900
-C                                                                        SLAP........898000
-C     Abstract                                                           SLAP........898100
-C        ***Note*** machine dependent routine                            SLAP........898200
-C        XERHLT aborts the execution of the program.                     SLAP........898300
-C        The error message causing the abort is given in the calling     SLAP........898400
-C        sequence, in case one needs it for printing on a dayfile,       SLAP........898500
-C        for example.                                                    SLAP........898600
-C                                                                        SLAP........898700
-C     Description of Parameters                                          SLAP........898800
-C        MESSG is as in XERMSG.                                          SLAP........898900
+  245 K=K+1                                                              SLAP........883600
+      IF( IA(K).LT.IT ) GO TO 245                                        SLAP........883700
+C                                                                        SLAP........883800
+C     Interchange these elements.                                        SLAP........883900
+C                                                                        SLAP........884000
+      IF( K.LE.L ) THEN                                                  SLAP........884100
+         IIT   = IA(L)                                                   SLAP........884200
+         IA(L) = IA(K)                                                   SLAP........884300
+         IA(K) = IIT                                                     SLAP........884400
+         JJT   = JA(L)                                                   SLAP........884500
+         JA(L) = JA(K)                                                   SLAP........884600
+         JA(K) = JJT                                                     SLAP........884700
+         TTA   = A(L)                                                    SLAP........884800
+         A(L)  = A(K)                                                    SLAP........884900
+         A(K)  = TTA                                                     SLAP........885000
+         GOTO 240                                                        SLAP........885100
+      ENDIF                                                              SLAP........885200
+C                                                                        SLAP........885300
+C     Save upper and lower subscripts of the array yet to be sorted.     SLAP........885400
+C                                                                        SLAP........885500
+      IF( L-I.GT.J-K ) THEN                                              SLAP........885600
+         IL(M) = I                                                       SLAP........885700
+         IU(M) = L                                                       SLAP........885800
+         I = K                                                           SLAP........885900
+         M = M+1                                                         SLAP........886000
+      ELSE                                                               SLAP........886100
+         IL(M) = K                                                       SLAP........886200
+         IU(M) = J                                                       SLAP........886300
+         J = L                                                           SLAP........886400
+         M = M+1                                                         SLAP........886500
+      ENDIF                                                              SLAP........886600
+      GO TO 260                                                          SLAP........886700
+C                                                                        SLAP........886800
+C     Begin again on another portion of the unsorted array.              SLAP........886900
+C                                                                        SLAP........887000
+  255 M = M-1                                                            SLAP........887100
+      IF( M.EQ.0 ) GO TO 300                                             SLAP........887200
+      I = IL(M)                                                          SLAP........887300
+      J = IU(M)                                                          SLAP........887400
+  260 IF( J-I.GE.1 ) GO TO 225                                           SLAP........887500
+      IF( I.EQ.J ) GO TO 255                                             SLAP........887600
+      IF( I.EQ.1 ) GO TO 210                                             SLAP........887700
+      I = I-1                                                            SLAP........887800
+  265 I = I+1                                                            SLAP........887900
+      IF( I.EQ.J ) GO TO 255                                             SLAP........888000
+      IT = IA(I+1)                                                       SLAP........888100
+      JT = JA(I+1)                                                       SLAP........888200
+      TA =  A(I+1)                                                       SLAP........888300
+      IF( IA(I).LE.IT ) GO TO 265                                        SLAP........888400
+      K=I                                                                SLAP........888500
+  270 IA(K+1) = IA(K)                                                    SLAP........888600
+      JA(K+1) = JA(K)                                                    SLAP........888700
+      A(K+1)  =  A(K)                                                    SLAP........888800
+      K = K-1                                                            SLAP........888900
+      IF( IT.LT.IA(K) ) GO TO 270                                        SLAP........889000
+      IA(K+1) = IT                                                       SLAP........889100
+      JA(K+1) = JT                                                       SLAP........889200
+      A(K+1)  = TA                                                       SLAP........889300
+      GO TO 265                                                          SLAP........889400
+C                                                                        SLAP........889500
+C     Clean up, if necessary.                                            SLAP........889600
+C                                                                        SLAP........889700
+  300 IF( KFLAG.LT.1 ) THEN                                              SLAP........889800
+         DO 310 I=1,NN                                                   SLAP........889900
+            IA(I) = -IA(I)                                               SLAP........890000
+ 310     CONTINUE                                                        SLAP........890100
+      ENDIF                                                              SLAP........890200
+      RETURN                                                             SLAP........890300
+C------------- LAST LINE OF QS2I1D FOLLOWS ----------------------------  SLAP........890400
+      END                                                                SLAP........890500
+*DECK XERCNT                                                             SLAP........890600
+      SUBROUTINE XERCNT (LIBRAR, SUBROU, MESSG, NERR, LEVEL, KONTRL)     SLAP........890700
+C***BEGIN PROLOGUE  XERCNT                                               SLAP........890800
+C***SUBSIDIARY                                                           SLAP........890900
+C***PURPOSE  Allow user control over handling of errors.                 SLAP........891000
+C***LIBRARY   SLATEC (XERROR)                                            SLAP........891100
+C***CATEGORY  R3C                                                        SLAP........891200
+C***TYPE      ALL (XERCNT-A)                                             SLAP........891300
+C***KEYWORDS  ERROR, XERROR                                              SLAP........891400
+C***AUTHOR  Jones, R. E., (SNLA)                                         SLAP........891500
+C***DESCRIPTION                                                          SLAP........891600
+C                                                                        SLAP........891700
+C     Abstract                                                           SLAP........891800
+C        Allows user control over handling of individual errors.         SLAP........891900
+C        Just after each message is recorded, but before it is           SLAP........892000
+C        processed any further (i.e., before it is printed or            SLAP........892100
+C        a decision to abort is made), a call is made to XERCNT.         SLAP........892200
+C        If the user has provided his own version of XERCNT, he          SLAP........892300
+C        can then override the value of KONTROL used in processing       SLAP........892400
+C        this message by redefining its value.                           SLAP........892500
+C        KONTRL may be set to any value from -2 to 2.                    SLAP........892600
+C        The meanings for KONTRL are the same as in XSETF, except        SLAP........892700
+C        that the value of KONTRL changes only for this message.         SLAP........892800
+C        If KONTRL is set to a value outside the range from -2 to 2,     SLAP........892900
+C        it will be moved back into that range.                          SLAP........893000
+C                                                                        SLAP........893100
+C     Description of Parameters                                          SLAP........893200
+C                                                                        SLAP........893300
+C      --Input--                                                         SLAP........893400
+C        LIBRAR - the library that the routine is in.                    SLAP........893500
+C        SUBROU - the subroutine that XERMSG is being called from        SLAP........893600
+C        MESSG  - the first 20 characters of the error message.          SLAP........893700
+C        NERR   - same as in the call to XERMSG.                         SLAP........893800
+C        LEVEL  - same as in the call to XERMSG.                         SLAP........893900
+C        KONTRL - the current value of the control flag as set           SLAP........894000
+C                 by a call to XSETF.                                    SLAP........894100
+C                                                                        SLAP........894200
+C      --Output--                                                        SLAP........894300
+C        KONTRL - the new value of KONTRL.  If KONTRL is not             SLAP........894400
+C                 defined, it will remain at its original value.         SLAP........894500
+C                 This changed value of control affects only             SLAP........894600
+C                 the current occurrence of the current message.         SLAP........894700
+C                                                                        SLAP........894800
+C***REFERENCES  R. E. Jones and D. K. Kahaner, XERROR, the SLATEC        SLAP........894900
+C                 Error-handling Package, SAND82-0800, Sandia            SLAP........895000
+C                 Laboratories, 1982.                                    SLAP........895100
+C***ROUTINES CALLED  (NONE)                                              SLAP........895200
+C***REVISION HISTORY  (YYMMDD)                                           SLAP........895300
+C   790801  DATE WRITTEN                                                 SLAP........895400
+C   861211  REVISION DATE from Version 3.2                               SLAP........895500
+C   891214  Prologue converted to Version 4.0 format.  (BAB)             SLAP........895600
+C   900206  Routine changed from user-callable to subsidiary.  (WRB)     SLAP........895700
+C   900510  Changed calling sequence to include LIBRARY and SUBROUTINE   SLAP........895800
+C           names, changed routine name from XERCTL to XERCNT.  (RWC)    SLAP........895900
+C   920501  Reformatted the REFERENCES section.  (WRB)                   SLAP........896000
+C***END PROLOGUE  XERCNT                                                 SLAP........896100
+      CHARACTER*(*) LIBRAR, SUBROU, MESSG                                SLAP........896200
+C***FIRST EXECUTABLE STATEMENT  XERCNT                                   SLAP........896300
+C.....THE NEXT TWO NON-COMMENT LINES (ONE CONTINUED LINE) WERE ADDED     SLAP........896400
+C        DURING INTEGRATION OF SLAP WITH SUTRA.  THEY ALLOW THE SOLUTION SLAP........896500
+C        PROCESS TO CONTINUE IF THE IC FACTORIZATION FOR THE CG SOLVER   SLAP........896600
+C        IS FUDGED.                                                      SLAP........896700
+      IF ((LIBRAR.EQ.'SLATEC').AND.(SUBROU.EQ.'DSICCG').AND.             SLAP........896800
+     1    (MESSG(1:20).EQ.'IC factorization bro')) KONTRL = 0            SLAP........896900
+      RETURN                                                             SLAP........897000
+      END                                                                SLAP........897100
+*DECK XERHLT                                                             SLAP........897200
+      SUBROUTINE XERHLT (MESSG)                                          SLAP........897300
+C***BEGIN PROLOGUE  XERHLT                                               SLAP........897400
+C***SUBSIDIARY                                                           SLAP........897500
+C***PURPOSE  Abort program execution and print error message.            SLAP........897600
+C***LIBRARY   SLATEC (XERROR)                                            SLAP........897700
+C***CATEGORY  R3C                                                        SLAP........897800
+C***TYPE      ALL (XERHLT-A)                                             SLAP........897900
+C***KEYWORDS  ABORT PROGRAM EXECUTION, ERROR, XERROR                     SLAP........898000
+C***AUTHOR  Jones, R. E., (SNLA)                                         SLAP........898100
+C***DESCRIPTION                                                          SLAP........898200
+C                                                                        SLAP........898300
+C     Abstract                                                           SLAP........898400
+C        ***Note*** machine dependent routine                            SLAP........898500
+C        XERHLT aborts the execution of the program.                     SLAP........898600
+C        The error message causing the abort is given in the calling     SLAP........898700
+C        sequence, in case one needs it for printing on a dayfile,       SLAP........898800
+C        for example.                                                    SLAP........898900
 C                                                                        SLAP........899000
-C***REFERENCES  R. E. Jones and D. K. Kahaner, XERROR, the SLATEC        SLAP........899100
-C                 Error-handling Package, SAND82-0800, Sandia            SLAP........899200
-C                 Laboratories, 1982.                                    SLAP........899300
-C***ROUTINES CALLED  (NONE)                                              SLAP........899400
-C***REVISION HISTORY  (YYMMDD)                                           SLAP........899500
-C   790801  DATE WRITTEN                                                 SLAP........899600
-C   861211  REVISION DATE from Version 3.2                               SLAP........899700
-C   891214  Prologue converted to Version 4.0 format.  (BAB)             SLAP........899800
-C   900206  Routine changed from user-callable to subsidiary.  (WRB)     SLAP........899900
-C   900510  Changed calling sequence to delete length of character       SLAP........900000
-C           and changed routine name from XERABT to XERHLT.  (RWC)       SLAP........900100
-C   920501  Reformatted the REFERENCES section.  (WRB)                   SLAP........900200
-C***END PROLOGUE  XERHLT                                                 SLAP........900300
-      CHARACTER*(*) MESSG                                                SLAP........900400
-C***FIRST EXECUTABLE STATEMENT  XERHLT                                   SLAP........900500
-      STOP                                                               SLAP........900600
-      END                                                                SLAP........900700
-*DECK XERMSG                                                             SLAP........900800
-      SUBROUTINE XERMSG (LIBRAR, SUBROU, MESSG, NERR, LEVEL)             SLAP........900900
-C***BEGIN PROLOGUE  XERMSG                                               SLAP........901000
-C***PURPOSE  Process error messages for SLATEC and other libraries.      SLAP........901100
-C***LIBRARY   SLATEC (XERROR)                                            SLAP........901200
-C***CATEGORY  R3C                                                        SLAP........901300
-C***TYPE      ALL (XERMSG-A)                                             SLAP........901400
-C***KEYWORDS  ERROR MESSAGE, XERROR                                      SLAP........901500
-C***AUTHOR  Fong, Kirby, (NMFECC at LLNL)                                SLAP........901600
-C***DESCRIPTION                                                          SLAP........901700
-C                                                                        SLAP........901800
-C   XERMSG processes a diagnostic message in a manner determined by the  SLAP........901900
-C   value of LEVEL and the current value of the library error control    SLAP........902000
-C   flag, KONTRL.  See subroutine XSETF for details.                     SLAP........902100
-C                                                                        SLAP........902200
-C    LIBRAR   A character constant (or character variable) with the name SLAP........902300
-C             of the library.  This will be 'SLATEC' for the SLATEC      SLAP........902400
-C             Common Math Library.  The error handling package is        SLAP........902500
-C             general enough to be used by many libraries                SLAP........902600
-C             simultaneously, so it is desirable for the routine that    SLAP........902700
-C             detects and reports an error to identify the library name  SLAP........902800
-C             as well as the routine name.                               SLAP........902900
-C                                                                        SLAP........903000
-C    SUBROU   A character constant (or character variable) with the name SLAP........903100
-C             of the routine that detected the error.  Usually it is the SLAP........903200
-C             name of the routine that is calling XERMSG.  There are     SLAP........903300
-C             some instances where a user callable library routine calls SLAP........903400
-C             lower level subsidiary routines where the error is         SLAP........903500
-C             detected.  In such cases it may be more informative to     SLAP........903600
-C             supply the name of the routine the user called rather than SLAP........903700
-C             the name of the subsidiary routine that detected the       SLAP........903800
-C             error.                                                     SLAP........903900
-C                                                                        SLAP........904000
-C    MESSG    A character constant (or character variable) with the text SLAP........904100
-C             of the error or warning message.  In the example below,    SLAP........904200
-C             the message is a character constant that contains a        SLAP........904300
-C             generic message.                                           SLAP........904400
-C                                                                        SLAP........904500
-C                   CALL XERMSG ('SLATEC', 'MMPY',                       SLAP........904600
-C                  *'THE ORDER OF THE MATRIX EXCEEDS THE ROW DIMENSION', SLAP........904700
-C                  *3, 1)                                                SLAP........904800
-C                                                                        SLAP........904900
-C             It is possible (and is sometimes desirable) to generate a  SLAP........905000
-C             specific message--e.g., one that contains actual numeric   SLAP........905100
-C             values.  Specific numeric values can be converted into     SLAP........905200
-C             character strings using formatted WRITE statements into    SLAP........905300
-C             character variables.  This is called standard Fortran      SLAP........905400
-C             internal file I/O and is exemplified in the first three    SLAP........905500
-C             lines of the following example.  You can also catenate     SLAP........905600
-C             substrings of characters to construct the error message.   SLAP........905700
-C             Here is an example showing the use of both writing to      SLAP........905800
-C             an internal file and catenating character strings.         SLAP........905900
-C                                                                        SLAP........906000
-C                   CHARACTER*5 CHARN, CHARL                             SLAP........906100
-C                   WRITE (CHARN,10) N                                   SLAP........906200
-C                   WRITE (CHARL,10) LDA                                 SLAP........906300
-C                10 FORMAT(I5)                                           SLAP........906400
-C                   CALL XERMSG ('SLATEC', 'MMPY', 'THE ORDER'//CHARN//  SLAP........906500
-C                  *   ' OF THE MATRIX EXCEEDS ITS ROW DIMENSION OF'//   SLAP........906600
-C                  *   CHARL, 3, 1)                                      SLAP........906700
-C                                                                        SLAP........906800
-C             There are two subtleties worth mentioning.  One is that    SLAP........906900
-C             the // for character catenation is used to construct the   SLAP........907000
-C             error message so that no single character constant is      SLAP........907100
-C             continued to the next line.  This avoids confusion as to   SLAP........907200
-C             whether there are trailing blanks at the end of the line.  SLAP........907300
-C             The second is that by catenating the parts of the message  SLAP........907400
-C             as an actual argument rather than encoding the entire      SLAP........907500
-C             message into one large character variable, we avoid        SLAP........907600
-C             having to know how long the message will be in order to    SLAP........907700
-C             declare an adequate length for that large character        SLAP........907800
-C             variable.  XERMSG calls XERPRN to print the message using  SLAP........907900
-C             multiple lines if necessary.  If the message is very long, SLAP........908000
-C             XERPRN will break it into pieces of 72 characters (as      SLAP........908100
-C             requested by XERMSG) for printing on multiple lines.       SLAP........908200
-C             Also, XERMSG asks XERPRN to prefix each line with ' *  '   SLAP........908300
-C             so that the total line length could be 76 characters.      SLAP........908400
-C             Note also that XERPRN scans the error message backwards    SLAP........908500
-C             to ignore trailing blanks.  Another feature is that        SLAP........908600
-C             the substring '$$' is treated as a new line sentinel       SLAP........908700
-C             by XERPRN.  If you want to construct a multiline           SLAP........908800
-C             message without having to count out multiples of 72        SLAP........908900
-C             characters, just use '$$' as a separator.  '$$'            SLAP........909000
-C             obviously must occur within 72 characters of the           SLAP........909100
-C             start of each line to have its intended effect since       SLAP........909200
-C             XERPRN is asked to wrap around at 72 characters in         SLAP........909300
-C             addition to looking for '$$'.                              SLAP........909400
-C                                                                        SLAP........909500
-C    NERR     An integer value that is chosen by the library routine's   SLAP........909600
-C             author.  It must be in the range -99 to 999 (three         SLAP........909700
-C             printable digits).  Each distinct error should have its    SLAP........909800
-C             own error number.  These error numbers should be described SLAP........909900
-C             in the machine readable documentation for the routine.     SLAP........910000
-C             The error numbers need be unique only within each routine, SLAP........910100
-C             so it is reasonable for each routine to start enumerating  SLAP........910200
-C             errors from 1 and proceeding to the next integer.          SLAP........910300
-C                                                                        SLAP........910400
-C    LEVEL    An integer value in the range 0 to 2 that indicates the    SLAP........910500
-C             level (severity) of the error.  Their meanings are         SLAP........910600
+C     Description of Parameters                                          SLAP........899100
+C        MESSG is as in XERMSG.                                          SLAP........899200
+C                                                                        SLAP........899300
+C***REFERENCES  R. E. Jones and D. K. Kahaner, XERROR, the SLATEC        SLAP........899400
+C                 Error-handling Package, SAND82-0800, Sandia            SLAP........899500
+C                 Laboratories, 1982.                                    SLAP........899600
+C***ROUTINES CALLED  (NONE)                                              SLAP........899700
+C***REVISION HISTORY  (YYMMDD)                                           SLAP........899800
+C   790801  DATE WRITTEN                                                 SLAP........899900
+C   861211  REVISION DATE from Version 3.2                               SLAP........900000
+C   891214  Prologue converted to Version 4.0 format.  (BAB)             SLAP........900100
+C   900206  Routine changed from user-callable to subsidiary.  (WRB)     SLAP........900200
+C   900510  Changed calling sequence to delete length of character       SLAP........900300
+C           and changed routine name from XERABT to XERHLT.  (RWC)       SLAP........900400
+C   920501  Reformatted the REFERENCES section.  (WRB)                   SLAP........900500
+C***END PROLOGUE  XERHLT                                                 SLAP........900600
+      CHARACTER*(*) MESSG                                                SLAP........900700
+C***FIRST EXECUTABLE STATEMENT  XERHLT                                   SLAP........900800
+      STOP                                                               SLAP........900900
+      END                                                                SLAP........901000
+*DECK XERMSG                                                             SLAP........901100
+      SUBROUTINE XERMSG (LIBRAR, SUBROU, MESSG, NERR, LEVEL)             SLAP........901200
+C***BEGIN PROLOGUE  XERMSG                                               SLAP........901300
+C***PURPOSE  Process error messages for SLATEC and other libraries.      SLAP........901400
+C***LIBRARY   SLATEC (XERROR)                                            SLAP........901500
+C***CATEGORY  R3C                                                        SLAP........901600
+C***TYPE      ALL (XERMSG-A)                                             SLAP........901700
+C***KEYWORDS  ERROR MESSAGE, XERROR                                      SLAP........901800
+C***AUTHOR  Fong, Kirby, (NMFECC at LLNL)                                SLAP........901900
+C***DESCRIPTION                                                          SLAP........902000
+C                                                                        SLAP........902100
+C   XERMSG processes a diagnostic message in a manner determined by the  SLAP........902200
+C   value of LEVEL and the current value of the library error control    SLAP........902300
+C   flag, KONTRL.  See subroutine XSETF for details.                     SLAP........902400
+C                                                                        SLAP........902500
+C    LIBRAR   A character constant (or character variable) with the name SLAP........902600
+C             of the library.  This will be 'SLATEC' for the SLATEC      SLAP........902700
+C             Common Math Library.  The error handling package is        SLAP........902800
+C             general enough to be used by many libraries                SLAP........902900
+C             simultaneously, so it is desirable for the routine that    SLAP........903000
+C             detects and reports an error to identify the library name  SLAP........903100
+C             as well as the routine name.                               SLAP........903200
+C                                                                        SLAP........903300
+C    SUBROU   A character constant (or character variable) with the name SLAP........903400
+C             of the routine that detected the error.  Usually it is the SLAP........903500
+C             name of the routine that is calling XERMSG.  There are     SLAP........903600
+C             some instances where a user callable library routine calls SLAP........903700
+C             lower level subsidiary routines where the error is         SLAP........903800
+C             detected.  In such cases it may be more informative to     SLAP........903900
+C             supply the name of the routine the user called rather than SLAP........904000
+C             the name of the subsidiary routine that detected the       SLAP........904100
+C             error.                                                     SLAP........904200
+C                                                                        SLAP........904300
+C    MESSG    A character constant (or character variable) with the text SLAP........904400
+C             of the error or warning message.  In the example below,    SLAP........904500
+C             the message is a character constant that contains a        SLAP........904600
+C             generic message.                                           SLAP........904700
+C                                                                        SLAP........904800
+C                   CALL XERMSG ('SLATEC', 'MMPY',                       SLAP........904900
+C                  *'THE ORDER OF THE MATRIX EXCEEDS THE ROW DIMENSION', SLAP........905000
+C                  *3, 1)                                                SLAP........905100
+C                                                                        SLAP........905200
+C             It is possible (and is sometimes desirable) to generate a  SLAP........905300
+C             specific message--e.g., one that contains actual numeric   SLAP........905400
+C             values.  Specific numeric values can be converted into     SLAP........905500
+C             character strings using formatted WRITE statements into    SLAP........905600
+C             character variables.  This is called standard Fortran      SLAP........905700
+C             internal file I/O and is exemplified in the first three    SLAP........905800
+C             lines of the following example.  You can also catenate     SLAP........905900
+C             substrings of characters to construct the error message.   SLAP........906000
+C             Here is an example showing the use of both writing to      SLAP........906100
+C             an internal file and catenating character strings.         SLAP........906200
+C                                                                        SLAP........906300
+C                   CHARACTER*5 CHARN, CHARL                             SLAP........906400
+C                   WRITE (CHARN,10) N                                   SLAP........906500
+C                   WRITE (CHARL,10) LDA                                 SLAP........906600
+C                10 FORMAT(I5)                                           SLAP........906700
+C                   CALL XERMSG ('SLATEC', 'MMPY', 'THE ORDER'//CHARN//  SLAP........906800
+C                  *   ' OF THE MATRIX EXCEEDS ITS ROW DIMENSION OF'//   SLAP........906900
+C                  *   CHARL, 3, 1)                                      SLAP........907000
+C                                                                        SLAP........907100
+C             There are two subtleties worth mentioning.  One is that    SLAP........907200
+C             the // for character catenation is used to construct the   SLAP........907300
+C             error message so that no single character constant is      SLAP........907400
+C             continued to the next line.  This avoids confusion as to   SLAP........907500
+C             whether there are trailing blanks at the end of the line.  SLAP........907600
+C             The second is that by catenating the parts of the message  SLAP........907700
+C             as an actual argument rather than encoding the entire      SLAP........907800
+C             message into one large character variable, we avoid        SLAP........907900
+C             having to know how long the message will be in order to    SLAP........908000
+C             declare an adequate length for that large character        SLAP........908100
+C             variable.  XERMSG calls XERPRN to print the message using  SLAP........908200
+C             multiple lines if necessary.  If the message is very long, SLAP........908300
+C             XERPRN will break it into pieces of 72 characters (as      SLAP........908400
+C             requested by XERMSG) for printing on multiple lines.       SLAP........908500
+C             Also, XERMSG asks XERPRN to prefix each line with ' *  '   SLAP........908600
+C             so that the total line length could be 76 characters.      SLAP........908700
+C             Note also that XERPRN scans the error message backwards    SLAP........908800
+C             to ignore trailing blanks.  Another feature is that        SLAP........908900
+C             the substring '$$' is treated as a new line sentinel       SLAP........909000
+C             by XERPRN.  If you want to construct a multiline           SLAP........909100
+C             message without having to count out multiples of 72        SLAP........909200
+C             characters, just use '$$' as a separator.  '$$'            SLAP........909300
+C             obviously must occur within 72 characters of the           SLAP........909400
+C             start of each line to have its intended effect since       SLAP........909500
+C             XERPRN is asked to wrap around at 72 characters in         SLAP........909600
+C             addition to looking for '$$'.                              SLAP........909700
+C                                                                        SLAP........909800
+C    NERR     An integer value that is chosen by the library routine's   SLAP........909900
+C             author.  It must be in the range -99 to 999 (three         SLAP........910000
+C             printable digits).  Each distinct error should have its    SLAP........910100
+C             own error number.  These error numbers should be described SLAP........910200
+C             in the machine readable documentation for the routine.     SLAP........910300
+C             The error numbers need be unique only within each routine, SLAP........910400
+C             so it is reasonable for each routine to start enumerating  SLAP........910500
+C             errors from 1 and proceeding to the next integer.          SLAP........910600
 C                                                                        SLAP........910700
-C            -1  A warning message.  This is used if it is not clear     SLAP........910800
-C                that there really is an error, but the user's attention SLAP........910900
-C                may be needed.  An attempt is made to only print this   SLAP........911000
-C                message once.                                           SLAP........911100
-C                                                                        SLAP........911200
-C             0  A warning message.  This is used if it is not clear     SLAP........911300
-C                that there really is an error, but the user's attention SLAP........911400
-C                may be needed.                                          SLAP........911500
-C                                                                        SLAP........911600
-C             1  A recoverable error.  This is used even if the error is SLAP........911700
-C                so serious that the routine cannot return any useful    SLAP........911800
-C                answer.  If the user has told the error package to      SLAP........911900
-C                return after recoverable errors, then XERMSG will       SLAP........912000
-C                return to the Library routine which can then return to  SLAP........912100
-C                the user's routine.  The user may also permit the error SLAP........912200
-C                package to terminate the program upon encountering a    SLAP........912300
-C                recoverable error.                                      SLAP........912400
-C                                                                        SLAP........912500
-C             2  A fatal error.  XERMSG will not return to its caller    SLAP........912600
-C                after it receives a fatal error.  This level should     SLAP........912700
-C                hardly ever be used; it is much better to allow the     SLAP........912800
-C                user a chance to recover.  An example of one of the few SLAP........912900
-C                cases in which it is permissible to declare a level 2   SLAP........913000
-C                error is a reverse communication Library routine that   SLAP........913100
-C                is likely to be called repeatedly until it integrates   SLAP........913200
-C                across some interval.  If there is a serious error in   SLAP........913300
-C                the input such that another step cannot be taken and    SLAP........913400
-C                the Library routine is called again without the input   SLAP........913500
-C                error having been corrected by the caller, the Library  SLAP........913600
-C                routine will probably be called forever with improper   SLAP........913700
-C                input.  In this case, it is reasonable to declare the   SLAP........913800
-C                error to be fatal.                                      SLAP........913900
-C                                                                        SLAP........914000
-C    Each of the arguments to XERMSG is input; none will be modified by  SLAP........914100
-C    XERMSG.  A routine may make multiple calls to XERMSG with warning   SLAP........914200
-C    level messages; however, after a call to XERMSG with a recoverable  SLAP........914300
-C    error, the routine should return to the user.  Do not try to call   SLAP........914400
-C    XERMSG with a second recoverable error after the first recoverable  SLAP........914500
-C    error because the error package saves the error number.  The user   SLAP........914600
-C    can retrieve this error number by calling another entry point in    SLAP........914700
-C    the error handling package and then clear the error number when     SLAP........914800
-C    recovering from the error.  Calling XERMSG in succession causes the SLAP........914900
-C    old error number to be overwritten by the latest error number.      SLAP........915000
-C    This is considered harmless for error numbers associated with       SLAP........915100
-C    warning messages but must not be done for error numbers of serious  SLAP........915200
-C    errors.  After a call to XERMSG with a recoverable error, the user  SLAP........915300
-C    must be given a chance to call NUMXER or XERCLR to retrieve or      SLAP........915400
-C    clear the error number.                                             SLAP........915500
-C***REFERENCES  R. E. Jones and D. K. Kahaner, XERROR, the SLATEC        SLAP........915600
-C                 Error-handling Package, SAND82-0800, Sandia            SLAP........915700
-C                 Laboratories, 1982.                                    SLAP........915800
-C***ROUTINES CALLED  FDUMP, J4SAVE, XERCNT, XERHLT, XERPRN, XERSVE       SLAP........915900
-C***REVISION HISTORY  (YYMMDD)                                           SLAP........916000
-C   880101  DATE WRITTEN                                                 SLAP........916100
-C   880621  REVISED AS DIRECTED AT SLATEC CML MEETING OF FEBRUARY 1988.  SLAP........916200
-C           THERE ARE TWO BASIC CHANGES.                                 SLAP........916300
-C           1.  A NEW ROUTINE, XERPRN, IS USED INSTEAD OF XERPRT TO      SLAP........916400
-C               PRINT MESSAGES.  THIS ROUTINE WILL BREAK LONG MESSAGES   SLAP........916500
-C               INTO PIECES FOR PRINTING ON MULTIPLE LINES.  '$$' IS     SLAP........916600
-C               ACCEPTED AS A NEW LINE SENTINEL.  A PREFIX CAN BE        SLAP........916700
-C               ADDED TO EACH LINE TO BE PRINTED.  XERMSG USES EITHER    SLAP........916800
-C               ' ***' OR ' *  ' AND LONG MESSAGES ARE BROKEN EVERY      SLAP........916900
-C               72 CHARACTERS (AT MOST) SO THAT THE MAXIMUM LINE         SLAP........917000
-C               LENGTH OUTPUT CAN NOW BE AS GREAT AS 76.                 SLAP........917100
-C           2.  THE TEXT OF ALL MESSAGES IS NOW IN UPPER CASE SINCE THE  SLAP........917200
-C               FORTRAN STANDARD DOCUMENT DOES NOT ADMIT THE EXISTENCE   SLAP........917300
-C               OF LOWER CASE.                                           SLAP........917400
-C   880708  REVISED AFTER THE SLATEC CML MEETING OF JUNE 29 AND 30.      SLAP........917500
-C           THE PRINCIPAL CHANGES ARE                                    SLAP........917600
-C           1.  CLARIFY COMMENTS IN THE PROLOGUES                        SLAP........917700
-C           2.  RENAME XRPRNT TO XERPRN                                  SLAP........917800
-C           3.  REWORK HANDLING OF '$$' IN XERPRN TO HANDLE BLANK LINES  SLAP........917900
-C               SIMILAR TO THE WAY FORMAT STATEMENTS HANDLE THE /        SLAP........918000
-C               CHARACTER FOR NEW RECORDS.                               SLAP........918100
-C   890706  REVISED WITH THE HELP OF FRED FRITSCH AND REG CLEMENS TO     SLAP........918200
-C           CLEAN UP THE CODING.                                         SLAP........918300
-C   890721  REVISED TO USE NEW FEATURE IN XERPRN TO COUNT CHARACTERS IN  SLAP........918400
-C           PREFIX.                                                      SLAP........918500
-C   891013  REVISED TO CORRECT COMMENTS.                                 SLAP........918600
-C   891214  Prologue converted to Version 4.0 format.  (WRB)             SLAP........918700
-C   900510  Changed test on NERR to be -9999999 < NERR < 99999999, but   SLAP........918800
-C           NERR .ne. 0, and on LEVEL to be -2 < LEVEL < 3.  Added       SLAP........918900
-C           LEVEL=-1 logic, changed calls to XERSAV to XERSVE, and       SLAP........919000
-C           XERCTL to XERCNT.  (RWC)                                     SLAP........919100
-C   920501  Reformatted the REFERENCES section.  (WRB)                   SLAP........919200
-C***END PROLOGUE  XERMSG                                                 SLAP........919300
-      CHARACTER*(*) LIBRAR, SUBROU, MESSG                                SLAP........919400
-      CHARACTER*8 XLIBR, XSUBR                                           SLAP........919500
-      CHARACTER*72  TEMP                                                 SLAP........919600
-      CHARACTER*20  LFIRST                                               SLAP........919700
-C***FIRST EXECUTABLE STATEMENT  XERMSG                                   SLAP........919800
-      LKNTRL = J4SAVE (2, 0, .FALSE.)                                    SLAP........919900
-      MAXMES = J4SAVE (4, 0, .FALSE.)                                    SLAP........920000
-C                                                                        SLAP........920100
-C       LKNTRL IS A LOCAL COPY OF THE CONTROL FLAG KONTRL.               SLAP........920200
-C       MAXMES IS THE MAXIMUM NUMBER OF TIMES ANY PARTICULAR MESSAGE     SLAP........920300
-C          SHOULD BE PRINTED.                                            SLAP........920400
-C                                                                        SLAP........920500
-C       WE PRINT A FATAL ERROR MESSAGE AND TERMINATE FOR AN ERROR IN     SLAP........920600
-C          CALLING XERMSG.  THE ERROR NUMBER SHOULD BE POSITIVE,         SLAP........920700
-C          AND THE LEVEL SHOULD BE BETWEEN 0 AND 2.                      SLAP........920800
-C                                                                        SLAP........920900
-      IF (NERR.LT.-9999999 .OR. NERR.GT.99999999 .OR. NERR.EQ.0 .OR.     SLAP........921000
-     *   LEVEL.LT.-1 .OR. LEVEL.GT.2) THEN                               SLAP........921100
-         CALL XERPRN (' ***', -1, 'FATAL ERROR IN...$$ ' //              SLAP........921200
-     *      'XERMSG -- INVALID ERROR NUMBER OR LEVEL$$ '//               SLAP........921300
-     *      'JOB ABORT DUE TO FATAL ERROR.', 72)                         SLAP........921400
-         CALL XERSVE (' ', ' ', ' ', 0, 0, 0, KDUMMY)                    SLAP........921500
-         CALL XERHLT (' ***XERMSG -- INVALID INPUT')                     SLAP........921600
-         RETURN                                                          SLAP........921700
-      ENDIF                                                              SLAP........921800
-C                                                                        SLAP........921900
-C       RECORD THE MESSAGE.                                              SLAP........922000
-C                                                                        SLAP........922100
-      I = J4SAVE (1, NERR, .TRUE.)                                       SLAP........922200
-      CALL XERSVE (LIBRAR, SUBROU, MESSG, 1, NERR, LEVEL, KOUNT)         SLAP........922300
+C    LEVEL    An integer value in the range 0 to 2 that indicates the    SLAP........910800
+C             level (severity) of the error.  Their meanings are         SLAP........910900
+C                                                                        SLAP........911000
+C            -1  A warning message.  This is used if it is not clear     SLAP........911100
+C                that there really is an error, but the user's attention SLAP........911200
+C                may be needed.  An attempt is made to only print this   SLAP........911300
+C                message once.                                           SLAP........911400
+C                                                                        SLAP........911500
+C             0  A warning message.  This is used if it is not clear     SLAP........911600
+C                that there really is an error, but the user's attention SLAP........911700
+C                may be needed.                                          SLAP........911800
+C                                                                        SLAP........911900
+C             1  A recoverable error.  This is used even if the error is SLAP........912000
+C                so serious that the routine cannot return any useful    SLAP........912100
+C                answer.  If the user has told the error package to      SLAP........912200
+C                return after recoverable errors, then XERMSG will       SLAP........912300
+C                return to the Library routine which can then return to  SLAP........912400
+C                the user's routine.  The user may also permit the error SLAP........912500
+C                package to terminate the program upon encountering a    SLAP........912600
+C                recoverable error.                                      SLAP........912700
+C                                                                        SLAP........912800
+C             2  A fatal error.  XERMSG will not return to its caller    SLAP........912900
+C                after it receives a fatal error.  This level should     SLAP........913000
+C                hardly ever be used; it is much better to allow the     SLAP........913100
+C                user a chance to recover.  An example of one of the few SLAP........913200
+C                cases in which it is permissible to declare a level 2   SLAP........913300
+C                error is a reverse communication Library routine that   SLAP........913400
+C                is likely to be called repeatedly until it integrates   SLAP........913500
+C                across some interval.  If there is a serious error in   SLAP........913600
+C                the input such that another step cannot be taken and    SLAP........913700
+C                the Library routine is called again without the input   SLAP........913800
+C                error having been corrected by the caller, the Library  SLAP........913900
+C                routine will probably be called forever with improper   SLAP........914000
+C                input.  In this case, it is reasonable to declare the   SLAP........914100
+C                error to be fatal.                                      SLAP........914200
+C                                                                        SLAP........914300
+C    Each of the arguments to XERMSG is input; none will be modified by  SLAP........914400
+C    XERMSG.  A routine may make multiple calls to XERMSG with warning   SLAP........914500
+C    level messages; however, after a call to XERMSG with a recoverable  SLAP........914600
+C    error, the routine should return to the user.  Do not try to call   SLAP........914700
+C    XERMSG with a second recoverable error after the first recoverable  SLAP........914800
+C    error because the error package saves the error number.  The user   SLAP........914900
+C    can retrieve this error number by calling another entry point in    SLAP........915000
+C    the error handling package and then clear the error number when     SLAP........915100
+C    recovering from the error.  Calling XERMSG in succession causes the SLAP........915200
+C    old error number to be overwritten by the latest error number.      SLAP........915300
+C    This is considered harmless for error numbers associated with       SLAP........915400
+C    warning messages but must not be done for error numbers of serious  SLAP........915500
+C    errors.  After a call to XERMSG with a recoverable error, the user  SLAP........915600
+C    must be given a chance to call NUMXER or XERCLR to retrieve or      SLAP........915700
+C    clear the error number.                                             SLAP........915800
+C***REFERENCES  R. E. Jones and D. K. Kahaner, XERROR, the SLATEC        SLAP........915900
+C                 Error-handling Package, SAND82-0800, Sandia            SLAP........916000
+C                 Laboratories, 1982.                                    SLAP........916100
+C***ROUTINES CALLED  FDUMP, J4SAVE, XERCNT, XERHLT, XERPRN, XERSVE       SLAP........916200
+C***REVISION HISTORY  (YYMMDD)                                           SLAP........916300
+C   880101  DATE WRITTEN                                                 SLAP........916400
+C   880621  REVISED AS DIRECTED AT SLATEC CML MEETING OF FEBRUARY 1988.  SLAP........916500
+C           THERE ARE TWO BASIC CHANGES.                                 SLAP........916600
+C           1.  A NEW ROUTINE, XERPRN, IS USED INSTEAD OF XERPRT TO      SLAP........916700
+C               PRINT MESSAGES.  THIS ROUTINE WILL BREAK LONG MESSAGES   SLAP........916800
+C               INTO PIECES FOR PRINTING ON MULTIPLE LINES.  '$$' IS     SLAP........916900
+C               ACCEPTED AS A NEW LINE SENTINEL.  A PREFIX CAN BE        SLAP........917000
+C               ADDED TO EACH LINE TO BE PRINTED.  XERMSG USES EITHER    SLAP........917100
+C               ' ***' OR ' *  ' AND LONG MESSAGES ARE BROKEN EVERY      SLAP........917200
+C               72 CHARACTERS (AT MOST) SO THAT THE MAXIMUM LINE         SLAP........917300
+C               LENGTH OUTPUT CAN NOW BE AS GREAT AS 76.                 SLAP........917400
+C           2.  THE TEXT OF ALL MESSAGES IS NOW IN UPPER CASE SINCE THE  SLAP........917500
+C               FORTRAN STANDARD DOCUMENT DOES NOT ADMIT THE EXISTENCE   SLAP........917600
+C               OF LOWER CASE.                                           SLAP........917700
+C   880708  REVISED AFTER THE SLATEC CML MEETING OF JUNE 29 AND 30.      SLAP........917800
+C           THE PRINCIPAL CHANGES ARE                                    SLAP........917900
+C           1.  CLARIFY COMMENTS IN THE PROLOGUES                        SLAP........918000
+C           2.  RENAME XRPRNT TO XERPRN                                  SLAP........918100
+C           3.  REWORK HANDLING OF '$$' IN XERPRN TO HANDLE BLANK LINES  SLAP........918200
+C               SIMILAR TO THE WAY FORMAT STATEMENTS HANDLE THE /        SLAP........918300
+C               CHARACTER FOR NEW RECORDS.                               SLAP........918400
+C   890706  REVISED WITH THE HELP OF FRED FRITSCH AND REG CLEMENS TO     SLAP........918500
+C           CLEAN UP THE CODING.                                         SLAP........918600
+C   890721  REVISED TO USE NEW FEATURE IN XERPRN TO COUNT CHARACTERS IN  SLAP........918700
+C           PREFIX.                                                      SLAP........918800
+C   891013  REVISED TO CORRECT COMMENTS.                                 SLAP........918900
+C   891214  Prologue converted to Version 4.0 format.  (WRB)             SLAP........919000
+C   900510  Changed test on NERR to be -9999999 < NERR < 99999999, but   SLAP........919100
+C           NERR .ne. 0, and on LEVEL to be -2 < LEVEL < 3.  Added       SLAP........919200
+C           LEVEL=-1 logic, changed calls to XERSAV to XERSVE, and       SLAP........919300
+C           XERCTL to XERCNT.  (RWC)                                     SLAP........919400
+C   920501  Reformatted the REFERENCES section.  (WRB)                   SLAP........919500
+C***END PROLOGUE  XERMSG                                                 SLAP........919600
+      CHARACTER*(*) LIBRAR, SUBROU, MESSG                                SLAP........919700
+      CHARACTER*8 XLIBR, XSUBR                                           SLAP........919800
+      CHARACTER*72  TEMP                                                 SLAP........919900
+      CHARACTER*20  LFIRST                                               SLAP........920000
+C***FIRST EXECUTABLE STATEMENT  XERMSG                                   SLAP........920100
+      LKNTRL = J4SAVE (2, 0, .FALSE.)                                    SLAP........920200
+      MAXMES = J4SAVE (4, 0, .FALSE.)                                    SLAP........920300
+C                                                                        SLAP........920400
+C       LKNTRL IS A LOCAL COPY OF THE CONTROL FLAG KONTRL.               SLAP........920500
+C       MAXMES IS THE MAXIMUM NUMBER OF TIMES ANY PARTICULAR MESSAGE     SLAP........920600
+C          SHOULD BE PRINTED.                                            SLAP........920700
+C                                                                        SLAP........920800
+C       WE PRINT A FATAL ERROR MESSAGE AND TERMINATE FOR AN ERROR IN     SLAP........920900
+C          CALLING XERMSG.  THE ERROR NUMBER SHOULD BE POSITIVE,         SLAP........921000
+C          AND THE LEVEL SHOULD BE BETWEEN 0 AND 2.                      SLAP........921100
+C                                                                        SLAP........921200
+      IF (NERR.LT.-9999999 .OR. NERR.GT.99999999 .OR. NERR.EQ.0 .OR.     SLAP........921300
+     *   LEVEL.LT.-1 .OR. LEVEL.GT.2) THEN                               SLAP........921400
+         CALL XERPRN (' ***', -1, 'FATAL ERROR IN...$$ ' //              SLAP........921500
+     *      'XERMSG -- INVALID ERROR NUMBER OR LEVEL$$ '//               SLAP........921600
+     *      'JOB ABORT DUE TO FATAL ERROR.', 72)                         SLAP........921700
+         CALL XERSVE (' ', ' ', ' ', 0, 0, 0, KDUMMY)                    SLAP........921800
+         CALL XERHLT (' ***XERMSG -- INVALID INPUT')                     SLAP........921900
+         RETURN                                                          SLAP........922000
+      ENDIF                                                              SLAP........922100
+C                                                                        SLAP........922200
+C       RECORD THE MESSAGE.                                              SLAP........922300
 C                                                                        SLAP........922400
-C       HANDLE PRINT-ONCE WARNING MESSAGES.                              SLAP........922500
-C                                                                        SLAP........922600
-      IF (LEVEL.EQ.-1 .AND. KOUNT.GT.1) RETURN                           SLAP........922700
-C                                                                        SLAP........922800
-C       ALLOW TEMPORARY USER OVERRIDE OF THE CONTROL FLAG.               SLAP........922900
-C                                                                        SLAP........923000
-      XLIBR  = LIBRAR                                                    SLAP........923100
-      XSUBR  = SUBROU                                                    SLAP........923200
-      LFIRST = MESSG                                                     SLAP........923300
-      LERR   = NERR                                                      SLAP........923400
-      LLEVEL = LEVEL                                                     SLAP........923500
-      CALL XERCNT (XLIBR, XSUBR, LFIRST, LERR, LLEVEL, LKNTRL)           SLAP........923600
-C                                                                        SLAP........923700
-      LKNTRL = MAX(-2, MIN(2,LKNTRL))                                    SLAP........923800
-      MKNTRL = ABS(LKNTRL)                                               SLAP........923900
+      I = J4SAVE (1, NERR, .TRUE.)                                       SLAP........922500
+      CALL XERSVE (LIBRAR, SUBROU, MESSG, 1, NERR, LEVEL, KOUNT)         SLAP........922600
+C                                                                        SLAP........922700
+C       HANDLE PRINT-ONCE WARNING MESSAGES.                              SLAP........922800
+C                                                                        SLAP........922900
+      IF (LEVEL.EQ.-1 .AND. KOUNT.GT.1) RETURN                           SLAP........923000
+C                                                                        SLAP........923100
+C       ALLOW TEMPORARY USER OVERRIDE OF THE CONTROL FLAG.               SLAP........923200
+C                                                                        SLAP........923300
+      XLIBR  = LIBRAR                                                    SLAP........923400
+      XSUBR  = SUBROU                                                    SLAP........923500
+      LFIRST = MESSG                                                     SLAP........923600
+      LERR   = NERR                                                      SLAP........923700
+      LLEVEL = LEVEL                                                     SLAP........923800
+      CALL XERCNT (XLIBR, XSUBR, LFIRST, LERR, LLEVEL, LKNTRL)           SLAP........923900
 C                                                                        SLAP........924000
-C       SKIP PRINTING IF THE CONTROL FLAG VALUE AS RESET IN XERCNT IS    SLAP........924100
-C       ZERO AND THE ERROR IS NOT FATAL.                                 SLAP........924200
+      LKNTRL = MAX(-2, MIN(2,LKNTRL))                                    SLAP........924100
+      MKNTRL = ABS(LKNTRL)                                               SLAP........924200
 C                                                                        SLAP........924300
-      IF (LEVEL.LT.2 .AND. LKNTRL.EQ.0) GO TO 30                         SLAP........924400
-      IF (LEVEL.EQ.0 .AND. KOUNT.GT.MAXMES) GO TO 30                     SLAP........924500
-      IF (LEVEL.EQ.1 .AND. KOUNT.GT.MAXMES .AND. MKNTRL.EQ.1) GO TO 30   SLAP........924600
-      IF (LEVEL.EQ.2 .AND. KOUNT.GT.MAX(1,MAXMES)) GO TO 30              SLAP........924700
-C                                                                        SLAP........924800
-C       ANNOUNCE THE NAMES OF THE LIBRARY AND SUBROUTINE BY BUILDING A   SLAP........924900
-C       MESSAGE IN CHARACTER VARIABLE TEMP (NOT EXCEEDING 66 CHARACTERS) SLAP........925000
-C       AND SENDING IT OUT VIA XERPRN.  PRINT ONLY IF CONTROL FLAG       SLAP........925100
-C       IS NOT ZERO.                                                     SLAP........925200
-C                                                                        SLAP........925300
-      IF (LKNTRL .NE. 0) THEN                                            SLAP........925400
-         TEMP(1:21) = 'MESSAGE FROM ROUTINE '                            SLAP........925500
-         I = MIN(LEN(SUBROU), 16)                                        SLAP........925600
-         TEMP(22:21+I) = SUBROU(1:I)                                     SLAP........925700
-         TEMP(22+I:33+I) = ' IN LIBRARY '                                SLAP........925800
-         LTEMP = 33 + I                                                  SLAP........925900
-         I = MIN(LEN(LIBRAR), 16)                                        SLAP........926000
-         TEMP(LTEMP+1:LTEMP+I) = LIBRAR (1:I)                            SLAP........926100
-         TEMP(LTEMP+I+1:LTEMP+I+1) = '.'                                 SLAP........926200
-         LTEMP = LTEMP + I + 1                                           SLAP........926300
-         CALL XERPRN (' ***', -1, TEMP(1:LTEMP), 72)                     SLAP........926400
-      ENDIF                                                              SLAP........926500
-C                                                                        SLAP........926600
-C       IF LKNTRL IS POSITIVE, PRINT AN INTRODUCTORY LINE BEFORE         SLAP........926700
-C       PRINTING THE MESSAGE.  THE INTRODUCTORY LINE TELLS THE CHOICE    SLAP........926800
-C       FROM EACH OF THE FOLLOWING THREE OPTIONS.                        SLAP........926900
-C       1.  LEVEL OF THE MESSAGE                                         SLAP........927000
-C              'INFORMATIVE MESSAGE'                                     SLAP........927100
-C              'POTENTIALLY RECOVERABLE ERROR'                           SLAP........927200
-C              'FATAL ERROR'                                             SLAP........927300
-C       2.  WHETHER CONTROL FLAG WILL ALLOW PROGRAM TO CONTINUE          SLAP........927400
-C              'PROG CONTINUES'                                          SLAP........927500
-C              'PROG ABORTED'                                            SLAP........927600
-C       3.  WHETHER OR NOT A TRACEBACK WAS REQUESTED.  (THE TRACEBACK    SLAP........927700
-C           MAY NOT BE IMPLEMENTED AT SOME SITES, SO THIS ONLY TELLS     SLAP........927800
-C           WHAT WAS REQUESTED, NOT WHAT WAS DELIVERED.)                 SLAP........927900
-C              'TRACEBACK REQUESTED'                                     SLAP........928000
-C              'TRACEBACK NOT REQUESTED'                                 SLAP........928100
-C       NOTICE THAT THE LINE INCLUDING FOUR PREFIX CHARACTERS WILL NOT   SLAP........928200
-C       EXCEED 74 CHARACTERS.                                            SLAP........928300
-C       WE SKIP THE NEXT BLOCK IF THE INTRODUCTORY LINE IS NOT NEEDED.   SLAP........928400
-C                                                                        SLAP........928500
-      IF (LKNTRL .GT. 0) THEN                                            SLAP........928600
-C                                                                        SLAP........928700
-C       THE FIRST PART OF THE MESSAGE TELLS ABOUT THE LEVEL.             SLAP........928800
-C                                                                        SLAP........928900
-         IF (LEVEL .LE. 0) THEN                                          SLAP........929000
-            TEMP(1:20) = 'INFORMATIVE MESSAGE,'                          SLAP........929100
-            LTEMP = 20                                                   SLAP........929200
-         ELSEIF (LEVEL .EQ. 1) THEN                                      SLAP........929300
-            TEMP(1:30) = 'POTENTIALLY RECOVERABLE ERROR,'                SLAP........929400
-            LTEMP = 30                                                   SLAP........929500
-         ELSE                                                            SLAP........929600
-            TEMP(1:12) = 'FATAL ERROR,'                                  SLAP........929700
-            LTEMP = 12                                                   SLAP........929800
-         ENDIF                                                           SLAP........929900
-C                                                                        SLAP........930000
-C       THEN WHETHER THE PROGRAM WILL CONTINUE.                          SLAP........930100
-C                                                                        SLAP........930200
-         IF ((MKNTRL.EQ.2 .AND. LEVEL.GE.1) .OR.                         SLAP........930300
-     *       (MKNTRL.EQ.1 .AND. LEVEL.EQ.2)) THEN                        SLAP........930400
-            TEMP(LTEMP+1:LTEMP+14) = ' PROG ABORTED,'                    SLAP........930500
-            LTEMP = LTEMP + 14                                           SLAP........930600
-         ELSE                                                            SLAP........930700
-            TEMP(LTEMP+1:LTEMP+16) = ' PROG CONTINUES,'                  SLAP........930800
-            LTEMP = LTEMP + 16                                           SLAP........930900
-         ENDIF                                                           SLAP........931000
-C                                                                        SLAP........931100
-C       FINALLY TELL WHETHER THERE SHOULD BE A TRACEBACK.                SLAP........931200
-C                                                                        SLAP........931300
-         IF (LKNTRL .GT. 0) THEN                                         SLAP........931400
-            TEMP(LTEMP+1:LTEMP+20) = ' TRACEBACK REQUESTED'              SLAP........931500
-            LTEMP = LTEMP + 20                                           SLAP........931600
-         ELSE                                                            SLAP........931700
-            TEMP(LTEMP+1:LTEMP+24) = ' TRACEBACK NOT REQUESTED'          SLAP........931800
-            LTEMP = LTEMP + 24                                           SLAP........931900
-         ENDIF                                                           SLAP........932000
-         CALL XERPRN (' ***', -1, TEMP(1:LTEMP), 72)                     SLAP........932100
-      ENDIF                                                              SLAP........932200
-C                                                                        SLAP........932300
-C       NOW SEND OUT THE MESSAGE.                                        SLAP........932400
-C                                                                        SLAP........932500
-      CALL XERPRN (' *  ', -1, MESSG, 72)                                SLAP........932600
-C                                                                        SLAP........932700
-C       IF LKNTRL IS POSITIVE, WRITE THE ERROR NUMBER AND REQUEST A      SLAP........932800
-C          TRACEBACK.                                                    SLAP........932900
+C       SKIP PRINTING IF THE CONTROL FLAG VALUE AS RESET IN XERCNT IS    SLAP........924400
+C       ZERO AND THE ERROR IS NOT FATAL.                                 SLAP........924500
+C                                                                        SLAP........924600
+      IF (LEVEL.LT.2 .AND. LKNTRL.EQ.0) GO TO 30                         SLAP........924700
+      IF (LEVEL.EQ.0 .AND. KOUNT.GT.MAXMES) GO TO 30                     SLAP........924800
+      IF (LEVEL.EQ.1 .AND. KOUNT.GT.MAXMES .AND. MKNTRL.EQ.1) GO TO 30   SLAP........924900
+      IF (LEVEL.EQ.2 .AND. KOUNT.GT.MAX(1,MAXMES)) GO TO 30              SLAP........925000
+C                                                                        SLAP........925100
+C       ANNOUNCE THE NAMES OF THE LIBRARY AND SUBROUTINE BY BUILDING A   SLAP........925200
+C       MESSAGE IN CHARACTER VARIABLE TEMP (NOT EXCEEDING 66 CHARACTERS) SLAP........925300
+C       AND SENDING IT OUT VIA XERPRN.  PRINT ONLY IF CONTROL FLAG       SLAP........925400
+C       IS NOT ZERO.                                                     SLAP........925500
+C                                                                        SLAP........925600
+      IF (LKNTRL .NE. 0) THEN                                            SLAP........925700
+         TEMP(1:21) = 'MESSAGE FROM ROUTINE '                            SLAP........925800
+         I = MIN(LEN(SUBROU), 16)                                        SLAP........925900
+         TEMP(22:21+I) = SUBROU(1:I)                                     SLAP........926000
+         TEMP(22+I:33+I) = ' IN LIBRARY '                                SLAP........926100
+         LTEMP = 33 + I                                                  SLAP........926200
+         I = MIN(LEN(LIBRAR), 16)                                        SLAP........926300
+         TEMP(LTEMP+1:LTEMP+I) = LIBRAR (1:I)                            SLAP........926400
+         TEMP(LTEMP+I+1:LTEMP+I+1) = '.'                                 SLAP........926500
+         LTEMP = LTEMP + I + 1                                           SLAP........926600
+         CALL XERPRN (' ***', -1, TEMP(1:LTEMP), 72)                     SLAP........926700
+      ENDIF                                                              SLAP........926800
+C                                                                        SLAP........926900
+C       IF LKNTRL IS POSITIVE, PRINT AN INTRODUCTORY LINE BEFORE         SLAP........927000
+C       PRINTING THE MESSAGE.  THE INTRODUCTORY LINE TELLS THE CHOICE    SLAP........927100
+C       FROM EACH OF THE FOLLOWING THREE OPTIONS.                        SLAP........927200
+C       1.  LEVEL OF THE MESSAGE                                         SLAP........927300
+C              'INFORMATIVE MESSAGE'                                     SLAP........927400
+C              'POTENTIALLY RECOVERABLE ERROR'                           SLAP........927500
+C              'FATAL ERROR'                                             SLAP........927600
+C       2.  WHETHER CONTROL FLAG WILL ALLOW PROGRAM TO CONTINUE          SLAP........927700
+C              'PROG CONTINUES'                                          SLAP........927800
+C              'PROG ABORTED'                                            SLAP........927900
+C       3.  WHETHER OR NOT A TRACEBACK WAS REQUESTED.  (THE TRACEBACK    SLAP........928000
+C           MAY NOT BE IMPLEMENTED AT SOME SITES, SO THIS ONLY TELLS     SLAP........928100
+C           WHAT WAS REQUESTED, NOT WHAT WAS DELIVERED.)                 SLAP........928200
+C              'TRACEBACK REQUESTED'                                     SLAP........928300
+C              'TRACEBACK NOT REQUESTED'                                 SLAP........928400
+C       NOTICE THAT THE LINE INCLUDING FOUR PREFIX CHARACTERS WILL NOT   SLAP........928500
+C       EXCEED 74 CHARACTERS.                                            SLAP........928600
+C       WE SKIP THE NEXT BLOCK IF THE INTRODUCTORY LINE IS NOT NEEDED.   SLAP........928700
+C                                                                        SLAP........928800
+      IF (LKNTRL .GT. 0) THEN                                            SLAP........928900
+C                                                                        SLAP........929000
+C       THE FIRST PART OF THE MESSAGE TELLS ABOUT THE LEVEL.             SLAP........929100
+C                                                                        SLAP........929200
+         IF (LEVEL .LE. 0) THEN                                          SLAP........929300
+            TEMP(1:20) = 'INFORMATIVE MESSAGE,'                          SLAP........929400
+            LTEMP = 20                                                   SLAP........929500
+         ELSEIF (LEVEL .EQ. 1) THEN                                      SLAP........929600
+            TEMP(1:30) = 'POTENTIALLY RECOVERABLE ERROR,'                SLAP........929700
+            LTEMP = 30                                                   SLAP........929800
+         ELSE                                                            SLAP........929900
+            TEMP(1:12) = 'FATAL ERROR,'                                  SLAP........930000
+            LTEMP = 12                                                   SLAP........930100
+         ENDIF                                                           SLAP........930200
+C                                                                        SLAP........930300
+C       THEN WHETHER THE PROGRAM WILL CONTINUE.                          SLAP........930400
+C                                                                        SLAP........930500
+         IF ((MKNTRL.EQ.2 .AND. LEVEL.GE.1) .OR.                         SLAP........930600
+     *       (MKNTRL.EQ.1 .AND. LEVEL.EQ.2)) THEN                        SLAP........930700
+            TEMP(LTEMP+1:LTEMP+14) = ' PROG ABORTED,'                    SLAP........930800
+            LTEMP = LTEMP + 14                                           SLAP........930900
+         ELSE                                                            SLAP........931000
+            TEMP(LTEMP+1:LTEMP+16) = ' PROG CONTINUES,'                  SLAP........931100
+            LTEMP = LTEMP + 16                                           SLAP........931200
+         ENDIF                                                           SLAP........931300
+C                                                                        SLAP........931400
+C       FINALLY TELL WHETHER THERE SHOULD BE A TRACEBACK.                SLAP........931500
+C                                                                        SLAP........931600
+         IF (LKNTRL .GT. 0) THEN                                         SLAP........931700
+            TEMP(LTEMP+1:LTEMP+20) = ' TRACEBACK REQUESTED'              SLAP........931800
+            LTEMP = LTEMP + 20                                           SLAP........931900
+         ELSE                                                            SLAP........932000
+            TEMP(LTEMP+1:LTEMP+24) = ' TRACEBACK NOT REQUESTED'          SLAP........932100
+            LTEMP = LTEMP + 24                                           SLAP........932200
+         ENDIF                                                           SLAP........932300
+         CALL XERPRN (' ***', -1, TEMP(1:LTEMP), 72)                     SLAP........932400
+      ENDIF                                                              SLAP........932500
+C                                                                        SLAP........932600
+C       NOW SEND OUT THE MESSAGE.                                        SLAP........932700
+C                                                                        SLAP........932800
+      CALL XERPRN (' *  ', -1, MESSG, 72)                                SLAP........932900
 C                                                                        SLAP........933000
-      IF (LKNTRL .GT. 0) THEN                                            SLAP........933100
-         WRITE (TEMP, '(''ERROR NUMBER = '', I8)') NERR                  SLAP........933200
-         DO 10 I=16,22                                                   SLAP........933300
-            IF (TEMP(I:I) .NE. ' ') GO TO 20                             SLAP........933400
-   10    CONTINUE                                                        SLAP........933500
-C                                                                        SLAP........933600
-   20    CALL XERPRN (' *  ', -1, TEMP(1:15) // TEMP(I:23), 72)          SLAP........933700
-         CALL FDUMP                                                      SLAP........933800
-      ENDIF                                                              SLAP........933900
-C                                                                        SLAP........934000
-C       IF LKNTRL IS NOT ZERO, PRINT A BLANK LINE AND AN END OF MESSAGE. SLAP........934100
-C                                                                        SLAP........934200
-      IF (LKNTRL .NE. 0) THEN                                            SLAP........934300
-         CALL XERPRN (' *  ', -1, ' ', 72)                               SLAP........934400
-         CALL XERPRN (' ***', -1, 'END OF MESSAGE', 72)                  SLAP........934500
-         CALL XERPRN ('    ',  0, ' ', 72)                               SLAP........934600
-      ENDIF                                                              SLAP........934700
-C                                                                        SLAP........934800
-C       IF THE ERROR IS NOT FATAL OR THE ERROR IS RECOVERABLE AND THE    SLAP........934900
-C       CONTROL FLAG IS SET FOR RECOVERY, THEN RETURN.                   SLAP........935000
+C       IF LKNTRL IS POSITIVE, WRITE THE ERROR NUMBER AND REQUEST A      SLAP........933100
+C          TRACEBACK.                                                    SLAP........933200
+C                                                                        SLAP........933300
+      IF (LKNTRL .GT. 0) THEN                                            SLAP........933400
+         WRITE (TEMP, '(''ERROR NUMBER = '', I8)') NERR                  SLAP........933500
+         DO 10 I=16,22                                                   SLAP........933600
+            IF (TEMP(I:I) .NE. ' ') GO TO 20                             SLAP........933700
+   10    CONTINUE                                                        SLAP........933800
+C                                                                        SLAP........933900
+   20    CALL XERPRN (' *  ', -1, TEMP(1:15) // TEMP(I:23), 72)          SLAP........934000
+         CALL FDUMP                                                      SLAP........934100
+      ENDIF                                                              SLAP........934200
+C                                                                        SLAP........934300
+C       IF LKNTRL IS NOT ZERO, PRINT A BLANK LINE AND AN END OF MESSAGE. SLAP........934400
+C                                                                        SLAP........934500
+      IF (LKNTRL .NE. 0) THEN                                            SLAP........934600
+         CALL XERPRN (' *  ', -1, ' ', 72)                               SLAP........934700
+         CALL XERPRN (' ***', -1, 'END OF MESSAGE', 72)                  SLAP........934800
+         CALL XERPRN ('    ',  0, ' ', 72)                               SLAP........934900
+      ENDIF                                                              SLAP........935000
 C                                                                        SLAP........935100
-   30 IF (LEVEL.LE.0 .OR. (LEVEL.EQ.1 .AND. MKNTRL.LE.1)) RETURN         SLAP........935200
-C                                                                        SLAP........935300
-C       THE PROGRAM WILL BE STOPPED DUE TO AN UNRECOVERED ERROR OR A     SLAP........935400
-C       FATAL ERROR.  PRINT THE REASON FOR THE ABORT AND THE ERROR       SLAP........935500
-C       SUMMARY IF THE CONTROL FLAG AND THE MAXIMUM ERROR COUNT PERMIT.  SLAP........935600
-C                                                                        SLAP........935700
-      IF (LKNTRL.GT.0 .AND. KOUNT.LT.MAX(1,MAXMES)) THEN                 SLAP........935800
-         IF (LEVEL .EQ. 1) THEN                                          SLAP........935900
-            CALL XERPRN                                                  SLAP........936000
-     *         (' ***', -1, 'JOB ABORT DUE TO UNRECOVERED ERROR.', 72)   SLAP........936100
-         ELSE                                                            SLAP........936200
-            CALL XERPRN(' ***', -1, 'JOB ABORT DUE TO FATAL ERROR.', 72) SLAP........936300
-         ENDIF                                                           SLAP........936400
-         CALL XERSVE (' ', ' ', ' ', -1, 0, 0, KDUMMY)                   SLAP........936500
-         CALL XERHLT (' ')                                               SLAP........936600
-      ELSE                                                               SLAP........936700
-         CALL XERHLT (MESSG)                                             SLAP........936800
-      ENDIF                                                              SLAP........936900
-      RETURN                                                             SLAP........937000
-      END                                                                SLAP........937100
-*DECK XERPRN                                                             SLAP........937200
-      SUBROUTINE XERPRN (PREFIX, NPREF, MESSG, NWRAP)                    SLAP........937300
-C***BEGIN PROLOGUE  XERPRN                                               SLAP........937400
-C***SUBSIDIARY                                                           SLAP........937500
-C***PURPOSE  Print error messages processed by XERMSG.                   SLAP........937600
-C***LIBRARY   SLATEC (XERROR)                                            SLAP........937700
-C***CATEGORY  R3C                                                        SLAP........937800
-C***TYPE      ALL (XERPRN-A)                                             SLAP........937900
-C***KEYWORDS  ERROR MESSAGES, PRINTING, XERROR                           SLAP........938000
-C***AUTHOR  Fong, Kirby, (NMFECC at LLNL)                                SLAP........938100
-C***DESCRIPTION                                                          SLAP........938200
-C                                                                        SLAP........938300
-C This routine sends one or more lines to each of the (up to five)       SLAP........938400
-C logical units to which error messages are to be sent.  This routine    SLAP........938500
-C is called several times by XERMSG, sometimes with a single line to     SLAP........938600
-C print and sometimes with a (potentially very long) message that may    SLAP........938700
-C wrap around into multiple lines.                                       SLAP........938800
-C                                                                        SLAP........938900
-C PREFIX  Input argument of type CHARACTER.  This argument contains      SLAP........939000
-C         characters to be put at the beginning of each line before      SLAP........939100
-C         the body of the message.  No more than 16 characters of        SLAP........939200
-C         PREFIX will be used.                                           SLAP........939300
-C                                                                        SLAP........939400
-C NPREF   Input argument of type INTEGER.  This argument is the number   SLAP........939500
-C         of characters to use from PREFIX.  If it is negative, the      SLAP........939600
-C         intrinsic function LEN is used to determine its length.  If    SLAP........939700
-C         it is zero, PREFIX is not used.  If it exceeds 16 or if        SLAP........939800
-C         LEN(PREFIX) exceeds 16, only the first 16 characters will be   SLAP........939900
-C         used.  If NPREF is positive and the length of PREFIX is less   SLAP........940000
-C         than NPREF, a copy of PREFIX extended with blanks to length    SLAP........940100
-C         NPREF will be used.                                            SLAP........940200
-C                                                                        SLAP........940300
-C MESSG   Input argument of type CHARACTER.  This is the text of a       SLAP........940400
-C         message to be printed.  If it is a long message, it will be    SLAP........940500
-C         broken into pieces for printing on multiple lines.  Each line  SLAP........940600
-C         will start with the appropriate prefix and be followed by a    SLAP........940700
-C         piece of the message.  NWRAP is the number of characters per   SLAP........940800
-C         piece; that is, after each NWRAP characters, we break and      SLAP........940900
-C         start a new line.  In addition the characters '$$' embedded    SLAP........941000
-C         in MESSG are a sentinel for a new line.  The counting of       SLAP........941100
-C         characters up to NWRAP starts over for each new line.  The     SLAP........941200
-C         value of NWRAP typically used by XERMSG is 72 since many       SLAP........941300
-C         older error messages in the SLATEC Library are laid out to     SLAP........941400
-C         rely on wrap-around every 72 characters.                       SLAP........941500
-C                                                                        SLAP........941600
-C NWRAP   Input argument of type INTEGER.  This gives the maximum size   SLAP........941700
-C         piece into which to break MESSG for printing on multiple       SLAP........941800
-C         lines.  An embedded '$$' ends a line, and the count restarts   SLAP........941900
-C         at the following character.  If a line break does not occur    SLAP........942000
-C         on a blank (it would split a word) that word is moved to the   SLAP........942100
-C         next line.  Values of NWRAP less than 16 will be treated as    SLAP........942200
-C         16.  Values of NWRAP greater than 132 will be treated as 132.  SLAP........942300
-C         The actual line length will be NPREF + NWRAP after NPREF has   SLAP........942400
-C         been adjusted to fall between 0 and 16 and NWRAP has been      SLAP........942500
-C         adjusted to fall between 16 and 132.                           SLAP........942600
-C                                                                        SLAP........942700
-C***REFERENCES  R. E. Jones and D. K. Kahaner, XERROR, the SLATEC        SLAP........942800
-C                 Error-handling Package, SAND82-0800, Sandia            SLAP........942900
-C                 Laboratories, 1982.                                    SLAP........943000
-C***ROUTINES CALLED  I1MACH, XGETUA                                      SLAP........943100
-C***REVISION HISTORY  (YYMMDD)                                           SLAP........943200
-C   880621  DATE WRITTEN                                                 SLAP........943300
-C   880708  REVISED AFTER THE SLATEC CML SUBCOMMITTEE MEETING OF         SLAP........943400
-C           JUNE 29 AND 30 TO CHANGE THE NAME TO XERPRN AND TO REWORK    SLAP........943500
-C           THE HANDLING OF THE NEW LINE SENTINEL TO BEHAVE LIKE THE     SLAP........943600
-C           SLASH CHARACTER IN FORMAT STATEMENTS.                        SLAP........943700
-C   890706  REVISED WITH THE HELP OF FRED FRITSCH AND REG CLEMENS TO     SLAP........943800
-C           STREAMLINE THE CODING AND FIX A BUG THAT CAUSED EXTRA BLANK  SLAP........943900
-C           LINES TO BE PRINTED.                                         SLAP........944000
-C   890721  REVISED TO ADD A NEW FEATURE.  A NEGATIVE VALUE OF NPREF     SLAP........944100
-C           CAUSES LEN(PREFIX) TO BE USED AS THE LENGTH.                 SLAP........944200
-C   891013  REVISED TO CORRECT ERROR IN CALCULATING PREFIX LENGTH.       SLAP........944300
-C   891214  Prologue converted to Version 4.0 format.  (WRB)             SLAP........944400
-C   900510  Added code to break messages between words.  (RWC)           SLAP........944500
-C   920501  Reformatted the REFERENCES section.  (WRB)                   SLAP........944600
-C***END PROLOGUE  XERPRN                                                 SLAP........944700
-      CHARACTER*(*) PREFIX, MESSG                                        SLAP........944800
-      INTEGER NPREF, NWRAP                                               SLAP........944900
-      CHARACTER*148 CBUFF                                                SLAP........945000
-      INTEGER IU(5), NUNIT                                               SLAP........945100
-      CHARACTER*2 NEWLIN                                                 SLAP........945200
-      PARAMETER (NEWLIN = '$$')                                          SLAP........945300
-C***FIRST EXECUTABLE STATEMENT  XERPRN                                   SLAP........945400
-      CALL XGETUA(IU,NUNIT)                                              SLAP........945500
-C                                                                        SLAP........945600
-C       A ZERO VALUE FOR A LOGICAL UNIT NUMBER MEANS TO USE THE STANDARD SLAP........945700
-C       ERROR MESSAGE UNIT INSTEAD.  I1MACH(4) RETRIEVES THE STANDARD    SLAP........945800
-C       ERROR MESSAGE UNIT.                                              SLAP........945900
-C                                                                        SLAP........946000
-      N = I1MACH(4)                                                      SLAP........946100
-      DO 10 I=1,NUNIT                                                    SLAP........946200
-         IF (IU(I) .EQ. 0) IU(I) = N                                     SLAP........946300
-   10 CONTINUE                                                           SLAP........946400
-C                                                                        SLAP........946500
-C       LPREF IS THE LENGTH OF THE PREFIX.  THE PREFIX IS PLACED AT THE  SLAP........946600
-C       BEGINNING OF CBUFF, THE CHARACTER BUFFER, AND KEPT THERE DURING  SLAP........946700
-C       THE REST OF THIS ROUTINE.                                        SLAP........946800
-C                                                                        SLAP........946900
-      IF ( NPREF .LT. 0 ) THEN                                           SLAP........947000
-         LPREF = LEN(PREFIX)                                             SLAP........947100
-      ELSE                                                               SLAP........947200
-         LPREF = NPREF                                                   SLAP........947300
-      ENDIF                                                              SLAP........947400
-      LPREF = MIN(16, LPREF)                                             SLAP........947500
-      IF (LPREF .NE. 0) CBUFF(1:LPREF) = PREFIX                          SLAP........947600
-C                                                                        SLAP........947700
-C       LWRAP IS THE MAXIMUM NUMBER OF CHARACTERS WE WANT TO TAKE AT ONE SLAP........947800
-C       TIME FROM MESSG TO PRINT ON ONE LINE.                            SLAP........947900
+C       IF THE ERROR IS NOT FATAL OR THE ERROR IS RECOVERABLE AND THE    SLAP........935200
+C       CONTROL FLAG IS SET FOR RECOVERY, THEN RETURN.                   SLAP........935300
+C                                                                        SLAP........935400
+   30 IF (LEVEL.LE.0 .OR. (LEVEL.EQ.1 .AND. MKNTRL.LE.1)) RETURN         SLAP........935500
+C                                                                        SLAP........935600
+C       THE PROGRAM WILL BE STOPPED DUE TO AN UNRECOVERED ERROR OR A     SLAP........935700
+C       FATAL ERROR.  PRINT THE REASON FOR THE ABORT AND THE ERROR       SLAP........935800
+C       SUMMARY IF THE CONTROL FLAG AND THE MAXIMUM ERROR COUNT PERMIT.  SLAP........935900
+C                                                                        SLAP........936000
+      IF (LKNTRL.GT.0 .AND. KOUNT.LT.MAX(1,MAXMES)) THEN                 SLAP........936100
+         IF (LEVEL .EQ. 1) THEN                                          SLAP........936200
+            CALL XERPRN                                                  SLAP........936300
+     *         (' ***', -1, 'JOB ABORT DUE TO UNRECOVERED ERROR.', 72)   SLAP........936400
+         ELSE                                                            SLAP........936500
+            CALL XERPRN(' ***', -1, 'JOB ABORT DUE TO FATAL ERROR.', 72) SLAP........936600
+         ENDIF                                                           SLAP........936700
+         CALL XERSVE (' ', ' ', ' ', -1, 0, 0, KDUMMY)                   SLAP........936800
+         CALL XERHLT (' ')                                               SLAP........936900
+      ELSE                                                               SLAP........937000
+         CALL XERHLT (MESSG)                                             SLAP........937100
+      ENDIF                                                              SLAP........937200
+      RETURN                                                             SLAP........937300
+      END                                                                SLAP........937400
+*DECK XERPRN                                                             SLAP........937500
+      SUBROUTINE XERPRN (PREFIX, NPREF, MESSG, NWRAP)                    SLAP........937600
+C***BEGIN PROLOGUE  XERPRN                                               SLAP........937700
+C***SUBSIDIARY                                                           SLAP........937800
+C***PURPOSE  Print error messages processed by XERMSG.                   SLAP........937900
+C***LIBRARY   SLATEC (XERROR)                                            SLAP........938000
+C***CATEGORY  R3C                                                        SLAP........938100
+C***TYPE      ALL (XERPRN-A)                                             SLAP........938200
+C***KEYWORDS  ERROR MESSAGES, PRINTING, XERROR                           SLAP........938300
+C***AUTHOR  Fong, Kirby, (NMFECC at LLNL)                                SLAP........938400
+C***DESCRIPTION                                                          SLAP........938500
+C                                                                        SLAP........938600
+C This routine sends one or more lines to each of the (up to five)       SLAP........938700
+C logical units to which error messages are to be sent.  This routine    SLAP........938800
+C is called several times by XERMSG, sometimes with a single line to     SLAP........938900
+C print and sometimes with a (potentially very long) message that may    SLAP........939000
+C wrap around into multiple lines.                                       SLAP........939100
+C                                                                        SLAP........939200
+C PREFIX  Input argument of type CHARACTER.  This argument contains      SLAP........939300
+C         characters to be put at the beginning of each line before      SLAP........939400
+C         the body of the message.  No more than 16 characters of        SLAP........939500
+C         PREFIX will be used.                                           SLAP........939600
+C                                                                        SLAP........939700
+C NPREF   Input argument of type INTEGER.  This argument is the number   SLAP........939800
+C         of characters to use from PREFIX.  If it is negative, the      SLAP........939900
+C         intrinsic function LEN is used to determine its length.  If    SLAP........940000
+C         it is zero, PREFIX is not used.  If it exceeds 16 or if        SLAP........940100
+C         LEN(PREFIX) exceeds 16, only the first 16 characters will be   SLAP........940200
+C         used.  If NPREF is positive and the length of PREFIX is less   SLAP........940300
+C         than NPREF, a copy of PREFIX extended with blanks to length    SLAP........940400
+C         NPREF will be used.                                            SLAP........940500
+C                                                                        SLAP........940600
+C MESSG   Input argument of type CHARACTER.  This is the text of a       SLAP........940700
+C         message to be printed.  If it is a long message, it will be    SLAP........940800
+C         broken into pieces for printing on multiple lines.  Each line  SLAP........940900
+C         will start with the appropriate prefix and be followed by a    SLAP........941000
+C         piece of the message.  NWRAP is the number of characters per   SLAP........941100
+C         piece; that is, after each NWRAP characters, we break and      SLAP........941200
+C         start a new line.  In addition the characters '$$' embedded    SLAP........941300
+C         in MESSG are a sentinel for a new line.  The counting of       SLAP........941400
+C         characters up to NWRAP starts over for each new line.  The     SLAP........941500
+C         value of NWRAP typically used by XERMSG is 72 since many       SLAP........941600
+C         older error messages in the SLATEC Library are laid out to     SLAP........941700
+C         rely on wrap-around every 72 characters.                       SLAP........941800
+C                                                                        SLAP........941900
+C NWRAP   Input argument of type INTEGER.  This gives the maximum size   SLAP........942000
+C         piece into which to break MESSG for printing on multiple       SLAP........942100
+C         lines.  An embedded '$$' ends a line, and the count restarts   SLAP........942200
+C         at the following character.  If a line break does not occur    SLAP........942300
+C         on a blank (it would split a word) that word is moved to the   SLAP........942400
+C         next line.  Values of NWRAP less than 16 will be treated as    SLAP........942500
+C         16.  Values of NWRAP greater than 132 will be treated as 132.  SLAP........942600
+C         The actual line length will be NPREF + NWRAP after NPREF has   SLAP........942700
+C         been adjusted to fall between 0 and 16 and NWRAP has been      SLAP........942800
+C         adjusted to fall between 16 and 132.                           SLAP........942900
+C                                                                        SLAP........943000
+C***REFERENCES  R. E. Jones and D. K. Kahaner, XERROR, the SLATEC        SLAP........943100
+C                 Error-handling Package, SAND82-0800, Sandia            SLAP........943200
+C                 Laboratories, 1982.                                    SLAP........943300
+C***ROUTINES CALLED  I1MACH, XGETUA                                      SLAP........943400
+C***REVISION HISTORY  (YYMMDD)                                           SLAP........943500
+C   880621  DATE WRITTEN                                                 SLAP........943600
+C   880708  REVISED AFTER THE SLATEC CML SUBCOMMITTEE MEETING OF         SLAP........943700
+C           JUNE 29 AND 30 TO CHANGE THE NAME TO XERPRN AND TO REWORK    SLAP........943800
+C           THE HANDLING OF THE NEW LINE SENTINEL TO BEHAVE LIKE THE     SLAP........943900
+C           SLASH CHARACTER IN FORMAT STATEMENTS.                        SLAP........944000
+C   890706  REVISED WITH THE HELP OF FRED FRITSCH AND REG CLEMENS TO     SLAP........944100
+C           STREAMLINE THE CODING AND FIX A BUG THAT CAUSED EXTRA BLANK  SLAP........944200
+C           LINES TO BE PRINTED.                                         SLAP........944300
+C   890721  REVISED TO ADD A NEW FEATURE.  A NEGATIVE VALUE OF NPREF     SLAP........944400
+C           CAUSES LEN(PREFIX) TO BE USED AS THE LENGTH.                 SLAP........944500
+C   891013  REVISED TO CORRECT ERROR IN CALCULATING PREFIX LENGTH.       SLAP........944600
+C   891214  Prologue converted to Version 4.0 format.  (WRB)             SLAP........944700
+C   900510  Added code to break messages between words.  (RWC)           SLAP........944800
+C   920501  Reformatted the REFERENCES section.  (WRB)                   SLAP........944900
+C***END PROLOGUE  XERPRN                                                 SLAP........945000
+      CHARACTER*(*) PREFIX, MESSG                                        SLAP........945100
+      INTEGER NPREF, NWRAP                                               SLAP........945200
+      CHARACTER*148 CBUFF                                                SLAP........945300
+      INTEGER IU(5), NUNIT                                               SLAP........945400
+      CHARACTER*2 NEWLIN                                                 SLAP........945500
+      PARAMETER (NEWLIN = '$$')                                          SLAP........945600
+C***FIRST EXECUTABLE STATEMENT  XERPRN                                   SLAP........945700
+      CALL XGETUA(IU,NUNIT)                                              SLAP........945800
+C                                                                        SLAP........945900
+C       A ZERO VALUE FOR A LOGICAL UNIT NUMBER MEANS TO USE THE STANDARD SLAP........946000
+C       ERROR MESSAGE UNIT INSTEAD.  I1MACH(4) RETRIEVES THE STANDARD    SLAP........946100
+C       ERROR MESSAGE UNIT.                                              SLAP........946200
+C                                                                        SLAP........946300
+      N = I1MACH(4)                                                      SLAP........946400
+      DO 10 I=1,NUNIT                                                    SLAP........946500
+         IF (IU(I) .EQ. 0) IU(I) = N                                     SLAP........946600
+   10 CONTINUE                                                           SLAP........946700
+C                                                                        SLAP........946800
+C       LPREF IS THE LENGTH OF THE PREFIX.  THE PREFIX IS PLACED AT THE  SLAP........946900
+C       BEGINNING OF CBUFF, THE CHARACTER BUFFER, AND KEPT THERE DURING  SLAP........947000
+C       THE REST OF THIS ROUTINE.                                        SLAP........947100
+C                                                                        SLAP........947200
+      IF ( NPREF .LT. 0 ) THEN                                           SLAP........947300
+         LPREF = LEN(PREFIX)                                             SLAP........947400
+      ELSE                                                               SLAP........947500
+         LPREF = NPREF                                                   SLAP........947600
+      ENDIF                                                              SLAP........947700
+      LPREF = MIN(16, LPREF)                                             SLAP........947800
+      IF (LPREF .NE. 0) CBUFF(1:LPREF) = PREFIX                          SLAP........947900
 C                                                                        SLAP........948000
-      LWRAP = MAX(16, MIN(132, NWRAP))                                   SLAP........948100
-C                                                                        SLAP........948200
-C       SET LENMSG TO THE LENGTH OF MESSG, IGNORE ANY TRAILING BLANKS.   SLAP........948300
-C                                                                        SLAP........948400
-      LENMSG = LEN(MESSG)                                                SLAP........948500
-      N = LENMSG                                                         SLAP........948600
-      DO 20 I=1,N                                                        SLAP........948700
-         IF (MESSG(LENMSG:LENMSG) .NE. ' ') GO TO 30                     SLAP........948800
-         LENMSG = LENMSG - 1                                             SLAP........948900
-   20 CONTINUE                                                           SLAP........949000
-   30 CONTINUE                                                           SLAP........949100
-C                                                                        SLAP........949200
-C       IF THE MESSAGE IS ALL BLANKS, THEN PRINT ONE BLANK LINE.         SLAP........949300
-C                                                                        SLAP........949400
-      IF (LENMSG .EQ. 0) THEN                                            SLAP........949500
-         CBUFF(LPREF+1:LPREF+1) = ' '                                    SLAP........949600
-         DO 40 I=1,NUNIT                                                 SLAP........949700
-            WRITE(IU(I), '(A)') CBUFF(1:LPREF+1)                         SLAP........949800
-   40    CONTINUE                                                        SLAP........949900
-         RETURN                                                          SLAP........950000
-      ENDIF                                                              SLAP........950100
-C                                                                        SLAP........950200
-C       SET NEXTC TO THE POSITION IN MESSG WHERE THE NEXT SUBSTRING      SLAP........950300
-C       STARTS.  FROM THIS POSITION WE SCAN FOR THE NEW LINE SENTINEL.   SLAP........950400
-C       WHEN NEXTC EXCEEDS LENMSG, THERE IS NO MORE TO PRINT.            SLAP........950500
-C       WE LOOP BACK TO LABEL 50 UNTIL ALL PIECES HAVE BEEN PRINTED.     SLAP........950600
-C                                                                        SLAP........950700
-C       WE LOOK FOR THE NEXT OCCURRENCE OF THE NEW LINE SENTINEL.  THE   SLAP........950800
-C       INDEX INTRINSIC FUNCTION RETURNS ZERO IF THERE IS NO OCCURRENCE  SLAP........950900
-C       OR IF THE LENGTH OF THE FIRST ARGUMENT IS LESS THAN THE LENGTH   SLAP........951000
-C       OF THE SECOND ARGUMENT.                                          SLAP........951100
-C                                                                        SLAP........951200
-C       THERE ARE SEVERAL CASES WHICH SHOULD BE CHECKED FOR IN THE       SLAP........951300
-C       FOLLOWING ORDER.  WE ARE ATTEMPTING TO SET LPIECE TO THE NUMBER  SLAP........951400
-C       OF CHARACTERS THAT SHOULD BE TAKEN FROM MESSG STARTING AT        SLAP........951500
-C       POSITION NEXTC.                                                  SLAP........951600
-C                                                                        SLAP........951700
-C       LPIECE .EQ. 0   THE NEW LINE SENTINEL DOES NOT OCCUR IN THE      SLAP........951800
-C                       REMAINDER OF THE CHARACTER STRING.  LPIECE       SLAP........951900
-C                       SHOULD BE SET TO LWRAP OR LENMSG+1-NEXTC,        SLAP........952000
-C                       WHICHEVER IS LESS.                               SLAP........952100
-C                                                                        SLAP........952200
-C       LPIECE .EQ. 1   THE NEW LINE SENTINEL STARTS AT MESSG(NEXTC:     SLAP........952300
-C                       NEXTC).  LPIECE IS EFFECTIVELY ZERO, AND WE      SLAP........952400
-C                       PRINT NOTHING TO AVOID PRODUCING UNNECESSARY     SLAP........952500
-C                       BLANK LINES.  THIS TAKES CARE OF THE SITUATION   SLAP........952600
-C                       WHERE THE LIBRARY ROUTINE HAS A MESSAGE OF       SLAP........952700
-C                       EXACTLY 72 CHARACTERS FOLLOWED BY A NEW LINE     SLAP........952800
-C                       SENTINEL FOLLOWED BY MORE CHARACTERS.  NEXTC     SLAP........952900
-C                       SHOULD BE INCREMENTED BY 2.                      SLAP........953000
-C                                                                        SLAP........953100
-C       LPIECE .GT. LWRAP+1  REDUCE LPIECE TO LWRAP.                     SLAP........953200
-C                                                                        SLAP........953300
-C       ELSE            THIS LAST CASE MEANS 2 .LE. LPIECE .LE. LWRAP+1  SLAP........953400
-C                       RESET LPIECE = LPIECE-1.  NOTE THAT THIS         SLAP........953500
-C                       PROPERLY HANDLES THE END CASE WHERE LPIECE .EQ.  SLAP........953600
-C                       LWRAP+1.  THAT IS, THE SENTINEL FALLS EXACTLY    SLAP........953700
-C                       AT THE END OF A LINE.                            SLAP........953800
-C                                                                        SLAP........953900
-      NEXTC = 1                                                          SLAP........954000
-   50 LPIECE = INDEX(MESSG(NEXTC:LENMSG), NEWLIN)                        SLAP........954100
-      IF (LPIECE .EQ. 0) THEN                                            SLAP........954200
-C                                                                        SLAP........954300
-C       THERE WAS NO NEW LINE SENTINEL FOUND.                            SLAP........954400
-C                                                                        SLAP........954500
-         IDELTA = 0                                                      SLAP........954600
-         LPIECE = MIN(LWRAP, LENMSG+1-NEXTC)                             SLAP........954700
-         IF (LPIECE .LT. LENMSG+1-NEXTC) THEN                            SLAP........954800
-            DO 52 I=LPIECE+1,2,-1                                        SLAP........954900
-               IF (MESSG(NEXTC+I-1:NEXTC+I-1) .EQ. ' ') THEN             SLAP........955000
-                  LPIECE = I-1                                           SLAP........955100
-                  IDELTA = 1                                             SLAP........955200
-                  GOTO 54                                                SLAP........955300
-               ENDIF                                                     SLAP........955400
-   52       CONTINUE                                                     SLAP........955500
-         ENDIF                                                           SLAP........955600
-   54    CBUFF(LPREF+1:LPREF+LPIECE) = MESSG(NEXTC:NEXTC+LPIECE-1)       SLAP........955700
-         NEXTC = NEXTC + LPIECE + IDELTA                                 SLAP........955800
-      ELSEIF (LPIECE .EQ. 1) THEN                                        SLAP........955900
-C                                                                        SLAP........956000
-C       WE HAVE A NEW LINE SENTINEL AT MESSG(NEXTC:NEXTC+1).             SLAP........956100
-C       DON'T PRINT A BLANK LINE.                                        SLAP........956200
+C       LWRAP IS THE MAXIMUM NUMBER OF CHARACTERS WE WANT TO TAKE AT ONE SLAP........948100
+C       TIME FROM MESSG TO PRINT ON ONE LINE.                            SLAP........948200
+C                                                                        SLAP........948300
+      LWRAP = MAX(16, MIN(132, NWRAP))                                   SLAP........948400
+C                                                                        SLAP........948500
+C       SET LENMSG TO THE LENGTH OF MESSG, IGNORE ANY TRAILING BLANKS.   SLAP........948600
+C                                                                        SLAP........948700
+      LENMSG = LEN(MESSG)                                                SLAP........948800
+      N = LENMSG                                                         SLAP........948900
+      DO 20 I=1,N                                                        SLAP........949000
+         IF (MESSG(LENMSG:LENMSG) .NE. ' ') GO TO 30                     SLAP........949100
+         LENMSG = LENMSG - 1                                             SLAP........949200
+   20 CONTINUE                                                           SLAP........949300
+   30 CONTINUE                                                           SLAP........949400
+C                                                                        SLAP........949500
+C       IF THE MESSAGE IS ALL BLANKS, THEN PRINT ONE BLANK LINE.         SLAP........949600
+C                                                                        SLAP........949700
+      IF (LENMSG .EQ. 0) THEN                                            SLAP........949800
+         CBUFF(LPREF+1:LPREF+1) = ' '                                    SLAP........949900
+         DO 40 I=1,NUNIT                                                 SLAP........950000
+            WRITE(IU(I), '(A)') CBUFF(1:LPREF+1)                         SLAP........950100
+   40    CONTINUE                                                        SLAP........950200
+         RETURN                                                          SLAP........950300
+      ENDIF                                                              SLAP........950400
+C                                                                        SLAP........950500
+C       SET NEXTC TO THE POSITION IN MESSG WHERE THE NEXT SUBSTRING      SLAP........950600
+C       STARTS.  FROM THIS POSITION WE SCAN FOR THE NEW LINE SENTINEL.   SLAP........950700
+C       WHEN NEXTC EXCEEDS LENMSG, THERE IS NO MORE TO PRINT.            SLAP........950800
+C       WE LOOP BACK TO LABEL 50 UNTIL ALL PIECES HAVE BEEN PRINTED.     SLAP........950900
+C                                                                        SLAP........951000
+C       WE LOOK FOR THE NEXT OCCURRENCE OF THE NEW LINE SENTINEL.  THE   SLAP........951100
+C       INDEX INTRINSIC FUNCTION RETURNS ZERO IF THERE IS NO OCCURRENCE  SLAP........951200
+C       OR IF THE LENGTH OF THE FIRST ARGUMENT IS LESS THAN THE LENGTH   SLAP........951300
+C       OF THE SECOND ARGUMENT.                                          SLAP........951400
+C                                                                        SLAP........951500
+C       THERE ARE SEVERAL CASES WHICH SHOULD BE CHECKED FOR IN THE       SLAP........951600
+C       FOLLOWING ORDER.  WE ARE ATTEMPTING TO SET LPIECE TO THE NUMBER  SLAP........951700
+C       OF CHARACTERS THAT SHOULD BE TAKEN FROM MESSG STARTING AT        SLAP........951800
+C       POSITION NEXTC.                                                  SLAP........951900
+C                                                                        SLAP........952000
+C       LPIECE .EQ. 0   THE NEW LINE SENTINEL DOES NOT OCCUR IN THE      SLAP........952100
+C                       REMAINDER OF THE CHARACTER STRING.  LPIECE       SLAP........952200
+C                       SHOULD BE SET TO LWRAP OR LENMSG+1-NEXTC,        SLAP........952300
+C                       WHICHEVER IS LESS.                               SLAP........952400
+C                                                                        SLAP........952500
+C       LPIECE .EQ. 1   THE NEW LINE SENTINEL STARTS AT MESSG(NEXTC:     SLAP........952600
+C                       NEXTC).  LPIECE IS EFFECTIVELY ZERO, AND WE      SLAP........952700
+C                       PRINT NOTHING TO AVOID PRODUCING UNNECESSARY     SLAP........952800
+C                       BLANK LINES.  THIS TAKES CARE OF THE SITUATION   SLAP........952900
+C                       WHERE THE LIBRARY ROUTINE HAS A MESSAGE OF       SLAP........953000
+C                       EXACTLY 72 CHARACTERS FOLLOWED BY A NEW LINE     SLAP........953100
+C                       SENTINEL FOLLOWED BY MORE CHARACTERS.  NEXTC     SLAP........953200
+C                       SHOULD BE INCREMENTED BY 2.                      SLAP........953300
+C                                                                        SLAP........953400
+C       LPIECE .GT. LWRAP+1  REDUCE LPIECE TO LWRAP.                     SLAP........953500
+C                                                                        SLAP........953600
+C       ELSE            THIS LAST CASE MEANS 2 .LE. LPIECE .LE. LWRAP+1  SLAP........953700
+C                       RESET LPIECE = LPIECE-1.  NOTE THAT THIS         SLAP........953800
+C                       PROPERLY HANDLES THE END CASE WHERE LPIECE .EQ.  SLAP........953900
+C                       LWRAP+1.  THAT IS, THE SENTINEL FALLS EXACTLY    SLAP........954000
+C                       AT THE END OF A LINE.                            SLAP........954100
+C                                                                        SLAP........954200
+      NEXTC = 1                                                          SLAP........954300
+   50 LPIECE = INDEX(MESSG(NEXTC:LENMSG), NEWLIN)                        SLAP........954400
+      IF (LPIECE .EQ. 0) THEN                                            SLAP........954500
+C                                                                        SLAP........954600
+C       THERE WAS NO NEW LINE SENTINEL FOUND.                            SLAP........954700
+C                                                                        SLAP........954800
+         IDELTA = 0                                                      SLAP........954900
+         LPIECE = MIN(LWRAP, LENMSG+1-NEXTC)                             SLAP........955000
+         IF (LPIECE .LT. LENMSG+1-NEXTC) THEN                            SLAP........955100
+            DO 52 I=LPIECE+1,2,-1                                        SLAP........955200
+               IF (MESSG(NEXTC+I-1:NEXTC+I-1) .EQ. ' ') THEN             SLAP........955300
+                  LPIECE = I-1                                           SLAP........955400
+                  IDELTA = 1                                             SLAP........955500
+                  GOTO 54                                                SLAP........955600
+               ENDIF                                                     SLAP........955700
+   52       CONTINUE                                                     SLAP........955800
+         ENDIF                                                           SLAP........955900
+   54    CBUFF(LPREF+1:LPREF+LPIECE) = MESSG(NEXTC:NEXTC+LPIECE-1)       SLAP........956000
+         NEXTC = NEXTC + LPIECE + IDELTA                                 SLAP........956100
+      ELSEIF (LPIECE .EQ. 1) THEN                                        SLAP........956200
 C                                                                        SLAP........956300
-         NEXTC = NEXTC + 2                                               SLAP........956400
-         GO TO 50                                                        SLAP........956500
-      ELSEIF (LPIECE .GT. LWRAP+1) THEN                                  SLAP........956600
-C                                                                        SLAP........956700
-C       LPIECE SHOULD BE SET DOWN TO LWRAP.                              SLAP........956800
-C                                                                        SLAP........956900
-         IDELTA = 0                                                      SLAP........957000
-         LPIECE = LWRAP                                                  SLAP........957100
-         DO 56 I=LPIECE+1,2,-1                                           SLAP........957200
-            IF (MESSG(NEXTC+I-1:NEXTC+I-1) .EQ. ' ') THEN                SLAP........957300
-               LPIECE = I-1                                              SLAP........957400
-               IDELTA = 1                                                SLAP........957500
-               GOTO 58                                                   SLAP........957600
-            ENDIF                                                        SLAP........957700
-   56    CONTINUE                                                        SLAP........957800
-   58    CBUFF(LPREF+1:LPREF+LPIECE) = MESSG(NEXTC:NEXTC+LPIECE-1)       SLAP........957900
-         NEXTC = NEXTC + LPIECE + IDELTA                                 SLAP........958000
-      ELSE                                                               SLAP........958100
-C                                                                        SLAP........958200
-C       IF WE ARRIVE HERE, IT MEANS 2 .LE. LPIECE .LE. LWRAP+1.          SLAP........958300
-C       WE SHOULD DECREMENT LPIECE BY ONE.                               SLAP........958400
+C       WE HAVE A NEW LINE SENTINEL AT MESSG(NEXTC:NEXTC+1).             SLAP........956400
+C       DON'T PRINT A BLANK LINE.                                        SLAP........956500
+C                                                                        SLAP........956600
+         NEXTC = NEXTC + 2                                               SLAP........956700
+         GO TO 50                                                        SLAP........956800
+      ELSEIF (LPIECE .GT. LWRAP+1) THEN                                  SLAP........956900
+C                                                                        SLAP........957000
+C       LPIECE SHOULD BE SET DOWN TO LWRAP.                              SLAP........957100
+C                                                                        SLAP........957200
+         IDELTA = 0                                                      SLAP........957300
+         LPIECE = LWRAP                                                  SLAP........957400
+         DO 56 I=LPIECE+1,2,-1                                           SLAP........957500
+            IF (MESSG(NEXTC+I-1:NEXTC+I-1) .EQ. ' ') THEN                SLAP........957600
+               LPIECE = I-1                                              SLAP........957700
+               IDELTA = 1                                                SLAP........957800
+               GOTO 58                                                   SLAP........957900
+            ENDIF                                                        SLAP........958000
+   56    CONTINUE                                                        SLAP........958100
+   58    CBUFF(LPREF+1:LPREF+LPIECE) = MESSG(NEXTC:NEXTC+LPIECE-1)       SLAP........958200
+         NEXTC = NEXTC + LPIECE + IDELTA                                 SLAP........958300
+      ELSE                                                               SLAP........958400
 C                                                                        SLAP........958500
-         LPIECE = LPIECE - 1                                             SLAP........958600
-         CBUFF(LPREF+1:LPREF+LPIECE) = MESSG(NEXTC:NEXTC+LPIECE-1)       SLAP........958700
-         NEXTC  = NEXTC + LPIECE + 2                                     SLAP........958800
-      ENDIF                                                              SLAP........958900
-C                                                                        SLAP........959000
-C       PRINT                                                            SLAP........959100
-C                                                                        SLAP........959200
-      DO 60 I=1,NUNIT                                                    SLAP........959300
-         WRITE(IU(I), '(A)') CBUFF(1:LPREF+LPIECE)                       SLAP........959400
-   60 CONTINUE                                                           SLAP........959500
-C                                                                        SLAP........959600
-      IF (NEXTC .LE. LENMSG) GO TO 50                                    SLAP........959700
-      RETURN                                                             SLAP........959800
-      END                                                                SLAP........959900
-*DECK XERSVE                                                             SLAP........960000
-      SUBROUTINE XERSVE (LIBRAR, SUBROU, MESSG, KFLAG, NERR, LEVEL,      SLAP........960100
-     +   ICOUNT)                                                         SLAP........960200
-C***BEGIN PROLOGUE  XERSVE                                               SLAP........960300
-C***SUBSIDIARY                                                           SLAP........960400
-C***PURPOSE  Record that an error has occurred.                          SLAP........960500
-C***LIBRARY   SLATEC (XERROR)                                            SLAP........960600
-C***CATEGORY  R3                                                         SLAP........960700
-C***TYPE      ALL (XERSVE-A)                                             SLAP........960800
-C***KEYWORDS  ERROR, XERROR                                              SLAP........960900
-C***AUTHOR  Jones, R. E., (SNLA)                                         SLAP........961000
-C***DESCRIPTION                                                          SLAP........961100
-C                                                                        SLAP........961200
-C *Usage:                                                                SLAP........961300
-C                                                                        SLAP........961400
-C        INTEGER  KFLAG, NERR, LEVEL, ICOUNT                             SLAP........961500
-C        CHARACTER * (len) LIBRAR, SUBROU, MESSG                         SLAP........961600
+C       IF WE ARRIVE HERE, IT MEANS 2 .LE. LPIECE .LE. LWRAP+1.          SLAP........958600
+C       WE SHOULD DECREMENT LPIECE BY ONE.                               SLAP........958700
+C                                                                        SLAP........958800
+         LPIECE = LPIECE - 1                                             SLAP........958900
+         CBUFF(LPREF+1:LPREF+LPIECE) = MESSG(NEXTC:NEXTC+LPIECE-1)       SLAP........959000
+         NEXTC  = NEXTC + LPIECE + 2                                     SLAP........959100
+      ENDIF                                                              SLAP........959200
+C                                                                        SLAP........959300
+C       PRINT                                                            SLAP........959400
+C                                                                        SLAP........959500
+      DO 60 I=1,NUNIT                                                    SLAP........959600
+         WRITE(IU(I), '(A)') CBUFF(1:LPREF+LPIECE)                       SLAP........959700
+   60 CONTINUE                                                           SLAP........959800
+C                                                                        SLAP........959900
+      IF (NEXTC .LE. LENMSG) GO TO 50                                    SLAP........960000
+      RETURN                                                             SLAP........960100
+      END                                                                SLAP........960200
+*DECK XERSVE                                                             SLAP........960300
+      SUBROUTINE XERSVE (LIBRAR, SUBROU, MESSG, KFLAG, NERR, LEVEL,      SLAP........960400
+     +   ICOUNT)                                                         SLAP........960500
+C***BEGIN PROLOGUE  XERSVE                                               SLAP........960600
+C***SUBSIDIARY                                                           SLAP........960700
+C***PURPOSE  Record that an error has occurred.                          SLAP........960800
+C***LIBRARY   SLATEC (XERROR)                                            SLAP........960900
+C***CATEGORY  R3                                                         SLAP........961000
+C***TYPE      ALL (XERSVE-A)                                             SLAP........961100
+C***KEYWORDS  ERROR, XERROR                                              SLAP........961200
+C***AUTHOR  Jones, R. E., (SNLA)                                         SLAP........961300
+C***DESCRIPTION                                                          SLAP........961400
+C                                                                        SLAP........961500
+C *Usage:                                                                SLAP........961600
 C                                                                        SLAP........961700
-C        CALL XERSVE (LIBRAR, SUBROU, MESSG, KFLAG, NERR, LEVEL, ICOUNT) SLAP........961800
-C                                                                        SLAP........961900
-C *Arguments:                                                            SLAP........962000
-C                                                                        SLAP........962100
-C        LIBRAR :IN    is the library that the message is from.          SLAP........962200
-C        SUBROU :IN    is the subroutine that the message is from.       SLAP........962300
-C        MESSG  :IN    is the message to be saved.                       SLAP........962400
-C        KFLAG  :IN    indicates the action to be performed.             SLAP........962500
-C                      when KFLAG > 0, the message in MESSG is saved.    SLAP........962600
-C                      when KFLAG=0 the tables will be dumped and        SLAP........962700
-C                      cleared.                                          SLAP........962800
-C                      when KFLAG < 0, the tables will be dumped and     SLAP........962900
-C                      not cleared.                                      SLAP........963000
-C        NERR   :IN    is the error number.                              SLAP........963100
-C        LEVEL  :IN    is the error severity.                            SLAP........963200
-C        ICOUNT :OUT   the number of times this message has been seen,   SLAP........963300
-C                      or zero if the table has overflowed and does not  SLAP........963400
-C                      contain this message specifically.  When KFLAG=0, SLAP........963500
-C                      ICOUNT will not be altered.                       SLAP........963600
-C                                                                        SLAP........963700
-C *Description:                                                          SLAP........963800
-C                                                                        SLAP........963900
-C   Record that this error occurred and possibly dump and clear the      SLAP........964000
-C   tables.                                                              SLAP........964100
+C        INTEGER  KFLAG, NERR, LEVEL, ICOUNT                             SLAP........961800
+C        CHARACTER * (len) LIBRAR, SUBROU, MESSG                         SLAP........961900
+C                                                                        SLAP........962000
+C        CALL XERSVE (LIBRAR, SUBROU, MESSG, KFLAG, NERR, LEVEL, ICOUNT) SLAP........962100
+C                                                                        SLAP........962200
+C *Arguments:                                                            SLAP........962300
+C                                                                        SLAP........962400
+C        LIBRAR :IN    is the library that the message is from.          SLAP........962500
+C        SUBROU :IN    is the subroutine that the message is from.       SLAP........962600
+C        MESSG  :IN    is the message to be saved.                       SLAP........962700
+C        KFLAG  :IN    indicates the action to be performed.             SLAP........962800
+C                      when KFLAG > 0, the message in MESSG is saved.    SLAP........962900
+C                      when KFLAG=0 the tables will be dumped and        SLAP........963000
+C                      cleared.                                          SLAP........963100
+C                      when KFLAG < 0, the tables will be dumped and     SLAP........963200
+C                      not cleared.                                      SLAP........963300
+C        NERR   :IN    is the error number.                              SLAP........963400
+C        LEVEL  :IN    is the error severity.                            SLAP........963500
+C        ICOUNT :OUT   the number of times this message has been seen,   SLAP........963600
+C                      or zero if the table has overflowed and does not  SLAP........963700
+C                      contain this message specifically.  When KFLAG=0, SLAP........963800
+C                      ICOUNT will not be altered.                       SLAP........963900
+C                                                                        SLAP........964000
+C *Description:                                                          SLAP........964100
 C                                                                        SLAP........964200
-C***REFERENCES  R. E. Jones and D. K. Kahaner, XERROR, the SLATEC        SLAP........964300
-C                 Error-handling Package, SAND82-0800, Sandia            SLAP........964400
-C                 Laboratories, 1982.                                    SLAP........964500
-C***ROUTINES CALLED  I1MACH, XGETUA                                      SLAP........964600
-C***REVISION HISTORY  (YYMMDD)                                           SLAP........964700
-C   800319  DATE WRITTEN                                                 SLAP........964800
-C   861211  REVISION DATE from Version 3.2                               SLAP........964900
-C   891214  Prologue converted to Version 4.0 format.  (BAB)             SLAP........965000
-C   900413  Routine modified to remove reference to KFLAG.  (WRB)        SLAP........965100
-C   900510  Changed to add LIBRARY NAME and SUBROUTINE to calling        SLAP........965200
-C           sequence, use IF-THEN-ELSE, make number of saved entries     SLAP........965300
-C           easily changeable, changed routine name from XERSAV to       SLAP........965400
-C           XERSVE.  (RWC)                                               SLAP........965500
-C   910626  Added LIBTAB and SUBTAB to SAVE statement.  (BKS)            SLAP........965600
-C   920501  Reformatted the REFERENCES section.  (WRB)                   SLAP........965700
-C***END PROLOGUE  XERSVE                                                 SLAP........965800
-      PARAMETER (LENTAB=10)                                              SLAP........965900
-      INTEGER LUN(5)                                                     SLAP........966000
-      CHARACTER*(*) LIBRAR, SUBROU, MESSG                                SLAP........966100
-      CHARACTER*8  LIBTAB(LENTAB), SUBTAB(LENTAB), LIB, SUB              SLAP........966200
-      CHARACTER*20 MESTAB(LENTAB), MES                                   SLAP........966300
-      DIMENSION NERTAB(LENTAB), LEVTAB(LENTAB), KOUNT(LENTAB)            SLAP........966400
-      SAVE LIBTAB, SUBTAB, MESTAB, NERTAB, LEVTAB, KOUNT, KOUNTX, NMSG   SLAP........966500
-      DATA KOUNTX/0/, NMSG/0/                                            SLAP........966600
-C***FIRST EXECUTABLE STATEMENT  XERSVE                                   SLAP........966700
-C                                                                        SLAP........966800
-      IF (KFLAG.LE.0) THEN                                               SLAP........966900
-C                                                                        SLAP........967000
-C        Dump the table.                                                 SLAP........967100
-C                                                                        SLAP........967200
-         IF (NMSG.EQ.0) RETURN                                           SLAP........967300
-C                                                                        SLAP........967400
-C        Print to each unit.                                             SLAP........967500
-C                                                                        SLAP........967600
-         CALL XGETUA (LUN, NUNIT)                                        SLAP........967700
-         DO 20 KUNIT = 1,NUNIT                                           SLAP........967800
-            IUNIT = LUN(KUNIT)                                           SLAP........967900
-            IF (IUNIT.EQ.0) IUNIT = I1MACH(4)                            SLAP........968000
-C                                                                        SLAP........968100
-C           Print the table header.                                      SLAP........968200
-C                                                                        SLAP........968300
-            WRITE (IUNIT,9000)                                           SLAP........968400
-C                                                                        SLAP........968500
-C           Print body of table.                                         SLAP........968600
-C                                                                        SLAP........968700
-            DO 10 I = 1,NMSG                                             SLAP........968800
-               WRITE (IUNIT,9010) LIBTAB(I), SUBTAB(I), MESTAB(I),       SLAP........968900
-     *            NERTAB(I),LEVTAB(I),KOUNT(I)                           SLAP........969000
-   10       CONTINUE                                                     SLAP........969100
-C                                                                        SLAP........969200
-C           Print number of other errors.                                SLAP........969300
-C                                                                        SLAP........969400
-            IF (KOUNTX.NE.0) WRITE (IUNIT,9020) KOUNTX                   SLAP........969500
-            WRITE (IUNIT,9030)                                           SLAP........969600
-   20    CONTINUE                                                        SLAP........969700
-C                                                                        SLAP........969800
-C        Clear the error tables.                                         SLAP........969900
-C                                                                        SLAP........970000
-         IF (KFLAG.EQ.0) THEN                                            SLAP........970100
-            NMSG = 0                                                     SLAP........970200
-            KOUNTX = 0                                                   SLAP........970300
-         ENDIF                                                           SLAP........970400
-      ELSE                                                               SLAP........970500
-C                                                                        SLAP........970600
-C        PROCESS A MESSAGE...                                            SLAP........970700
-C        SEARCH FOR THIS MESSG, OR ELSE AN EMPTY SLOT FOR THIS MESSG,    SLAP........970800
-C        OR ELSE DETERMINE THAT THE ERROR TABLE IS FULL.                 SLAP........970900
-C                                                                        SLAP........971000
-         LIB = LIBRAR                                                    SLAP........971100
-         SUB = SUBROU                                                    SLAP........971200
-         MES = MESSG                                                     SLAP........971300
-         DO 30 I = 1,NMSG                                                SLAP........971400
-            IF (LIB.EQ.LIBTAB(I) .AND. SUB.EQ.SUBTAB(I) .AND.            SLAP........971500
-     *         MES.EQ.MESTAB(I) .AND. NERR.EQ.NERTAB(I) .AND.            SLAP........971600
-     *         LEVEL.EQ.LEVTAB(I)) THEN                                  SLAP........971700
-                  KOUNT(I) = KOUNT(I) + 1                                SLAP........971800
-                  ICOUNT = KOUNT(I)                                      SLAP........971900
-                  RETURN                                                 SLAP........972000
-            ENDIF                                                        SLAP........972100
-   30    CONTINUE                                                        SLAP........972200
-C                                                                        SLAP........972300
-         IF (NMSG.LT.LENTAB) THEN                                        SLAP........972400
-C                                                                        SLAP........972500
-C           Empty slot found for new message.                            SLAP........972600
-C                                                                        SLAP........972700
-            NMSG = NMSG + 1                                              SLAP........972800
-            LIBTAB(I) = LIB                                              SLAP........972900
-            SUBTAB(I) = SUB                                              SLAP........973000
-            MESTAB(I) = MES                                              SLAP........973100
-            NERTAB(I) = NERR                                             SLAP........973200
-            LEVTAB(I) = LEVEL                                            SLAP........973300
-            KOUNT (I) = 1                                                SLAP........973400
-            ICOUNT    = 1                                                SLAP........973500
-         ELSE                                                            SLAP........973600
-C                                                                        SLAP........973700
-C           Table is full.                                               SLAP........973800
-C                                                                        SLAP........973900
-            KOUNTX = KOUNTX+1                                            SLAP........974000
-            ICOUNT = 0                                                   SLAP........974100
-         ENDIF                                                           SLAP........974200
-      ENDIF                                                              SLAP........974300
-      RETURN                                                             SLAP........974400
-C                                                                        SLAP........974500
-C     Formats.                                                           SLAP........974600
-C                                                                        SLAP........974700
- 9000 FORMAT ('0          ERROR MESSAGE SUMMARY' /                       SLAP........974800
-     +   ' LIBRARY    SUBROUTINE MESSAGE START             NERR',        SLAP........974900
-     +   '     LEVEL     COUNT')                                         SLAP........975000
- 9010 FORMAT (1X,A,3X,A,3X,A,3I10)                                       SLAP........975100
- 9020 FORMAT ('0OTHER ERRORS NOT INDIVIDUALLY TABULATED = ', I10)        SLAP........975200
- 9030 FORMAT (1X)                                                        SLAP........975300
-      END                                                                SLAP........975400
-*DECK XGETUA                                                             SLAP........975500
-      SUBROUTINE XGETUA (IUNITA, N)                                      SLAP........975600
-C***BEGIN PROLOGUE  XGETUA                                               SLAP........975700
-C***PURPOSE  Return unit number(s) to which error messages are being     SLAP........975800
-C            sent.                                                       SLAP........975900
-C***LIBRARY   SLATEC (XERROR)                                            SLAP........976000
-C***CATEGORY  R3C                                                        SLAP........976100
-C***TYPE      ALL (XGETUA-A)                                             SLAP........976200
-C***KEYWORDS  ERROR, XERROR                                              SLAP........976300
-C***AUTHOR  Jones, R. E., (SNLA)                                         SLAP........976400
-C***DESCRIPTION                                                          SLAP........976500
-C                                                                        SLAP........976600
-C     Abstract                                                           SLAP........976700
-C        XGETUA may be called to determine the unit number or numbers    SLAP........976800
-C        to which error messages are being sent.                         SLAP........976900
-C        These unit numbers may have been set by a call to XSETUN,       SLAP........977000
-C        or a call to XSETUA, or may be a default value.                 SLAP........977100
-C                                                                        SLAP........977200
-C     Description of Parameters                                          SLAP........977300
-C      --Output--                                                        SLAP........977400
-C        IUNIT - an array of one to five unit numbers, depending         SLAP........977500
-C                on the value of N.  A value of zero refers to the       SLAP........977600
-C                default unit, as defined by the I1MACH machine          SLAP........977700
-C                constant routine.  Only IUNIT(1),...,IUNIT(N) are       SLAP........977800
-C                defined by XGETUA.  The values of IUNIT(N+1),...,       SLAP........977900
-C                IUNIT(5) are not defined (for N .LT. 5) or altered      SLAP........978000
-C                in any way by XGETUA.                                   SLAP........978100
-C        N     - the number of units to which copies of the              SLAP........978200
-C                error messages are being sent.  N will be in the        SLAP........978300
-C                range from 1 to 5.                                      SLAP........978400
-C                                                                        SLAP........978500
-C***REFERENCES  R. E. Jones and D. K. Kahaner, XERROR, the SLATEC        SLAP........978600
-C                 Error-handling Package, SAND82-0800, Sandia            SLAP........978700
-C                 Laboratories, 1982.                                    SLAP........978800
-C***ROUTINES CALLED  J4SAVE                                              SLAP........978900
-C***REVISION HISTORY  (YYMMDD)                                           SLAP........979000
-C   790801  DATE WRITTEN                                                 SLAP........979100
-C   861211  REVISION DATE from Version 3.2                               SLAP........979200
-C   891214  Prologue converted to Version 4.0 format.  (BAB)             SLAP........979300
-C   920501  Reformatted the REFERENCES section.  (WRB)                   SLAP........979400
-C***END PROLOGUE  XGETUA                                                 SLAP........979500
-      DIMENSION IUNITA(5)                                                SLAP........979600
-C***FIRST EXECUTABLE STATEMENT  XGETUA                                   SLAP........979700
-      N = J4SAVE(5,0,.FALSE.)                                            SLAP........979800
-      DO 30 I=1,N                                                        SLAP........979900
-         INDEX = I+4                                                     SLAP........980000
-         IF (I.EQ.1) INDEX = 3                                           SLAP........980100
-         IUNITA(I) = J4SAVE(INDEX,0,.FALSE.)                             SLAP........980200
-   30 CONTINUE                                                           SLAP........980300
-      RETURN                                                             SLAP........980400
-      END                                                                SLAP........980500
+C   Record that this error occurred and possibly dump and clear the      SLAP........964300
+C   tables.                                                              SLAP........964400
+C                                                                        SLAP........964500
+C***REFERENCES  R. E. Jones and D. K. Kahaner, XERROR, the SLATEC        SLAP........964600
+C                 Error-handling Package, SAND82-0800, Sandia            SLAP........964700
+C                 Laboratories, 1982.                                    SLAP........964800
+C***ROUTINES CALLED  I1MACH, XGETUA                                      SLAP........964900
+C***REVISION HISTORY  (YYMMDD)                                           SLAP........965000
+C   800319  DATE WRITTEN                                                 SLAP........965100
+C   861211  REVISION DATE from Version 3.2                               SLAP........965200
+C   891214  Prologue converted to Version 4.0 format.  (BAB)             SLAP........965300
+C   900413  Routine modified to remove reference to KFLAG.  (WRB)        SLAP........965400
+C   900510  Changed to add LIBRARY NAME and SUBROUTINE to calling        SLAP........965500
+C           sequence, use IF-THEN-ELSE, make number of saved entries     SLAP........965600
+C           easily changeable, changed routine name from XERSAV to       SLAP........965700
+C           XERSVE.  (RWC)                                               SLAP........965800
+C   910626  Added LIBTAB and SUBTAB to SAVE statement.  (BKS)            SLAP........965900
+C   920501  Reformatted the REFERENCES section.  (WRB)                   SLAP........966000
+C***END PROLOGUE  XERSVE                                                 SLAP........966100
+      PARAMETER (LENTAB=10)                                              SLAP........966200
+      INTEGER LUN(5)                                                     SLAP........966300
+      CHARACTER*(*) LIBRAR, SUBROU, MESSG                                SLAP........966400
+      CHARACTER*8  LIBTAB(LENTAB), SUBTAB(LENTAB), LIB, SUB              SLAP........966500
+      CHARACTER*20 MESTAB(LENTAB), MES                                   SLAP........966600
+      DIMENSION NERTAB(LENTAB), LEVTAB(LENTAB), KOUNT(LENTAB)            SLAP........966700
+      SAVE LIBTAB, SUBTAB, MESTAB, NERTAB, LEVTAB, KOUNT, KOUNTX, NMSG   SLAP........966800
+      DATA KOUNTX/0/, NMSG/0/                                            SLAP........966900
+C***FIRST EXECUTABLE STATEMENT  XERSVE                                   SLAP........967000
+C                                                                        SLAP........967100
+      IF (KFLAG.LE.0) THEN                                               SLAP........967200
+C                                                                        SLAP........967300
+C        Dump the table.                                                 SLAP........967400
+C                                                                        SLAP........967500
+         IF (NMSG.EQ.0) RETURN                                           SLAP........967600
+C                                                                        SLAP........967700
+C        Print to each unit.                                             SLAP........967800
+C                                                                        SLAP........967900
+         CALL XGETUA (LUN, NUNIT)                                        SLAP........968000
+         DO 20 KUNIT = 1,NUNIT                                           SLAP........968100
+            IUNIT = LUN(KUNIT)                                           SLAP........968200
+            IF (IUNIT.EQ.0) IUNIT = I1MACH(4)                            SLAP........968300
+C                                                                        SLAP........968400
+C           Print the table header.                                      SLAP........968500
+C                                                                        SLAP........968600
+            WRITE (IUNIT,9000)                                           SLAP........968700
+C                                                                        SLAP........968800
+C           Print body of table.                                         SLAP........968900
+C                                                                        SLAP........969000
+            DO 10 I = 1,NMSG                                             SLAP........969100
+               WRITE (IUNIT,9010) LIBTAB(I), SUBTAB(I), MESTAB(I),       SLAP........969200
+     *            NERTAB(I),LEVTAB(I),KOUNT(I)                           SLAP........969300
+   10       CONTINUE                                                     SLAP........969400
+C                                                                        SLAP........969500
+C           Print number of other errors.                                SLAP........969600
+C                                                                        SLAP........969700
+            IF (KOUNTX.NE.0) WRITE (IUNIT,9020) KOUNTX                   SLAP........969800
+            WRITE (IUNIT,9030)                                           SLAP........969900
+   20    CONTINUE                                                        SLAP........970000
+C                                                                        SLAP........970100
+C        Clear the error tables.                                         SLAP........970200
+C                                                                        SLAP........970300
+         IF (KFLAG.EQ.0) THEN                                            SLAP........970400
+            NMSG = 0                                                     SLAP........970500
+            KOUNTX = 0                                                   SLAP........970600
+         ENDIF                                                           SLAP........970700
+      ELSE                                                               SLAP........970800
+C                                                                        SLAP........970900
+C        PROCESS A MESSAGE...                                            SLAP........971000
+C        SEARCH FOR THIS MESSG, OR ELSE AN EMPTY SLOT FOR THIS MESSG,    SLAP........971100
+C        OR ELSE DETERMINE THAT THE ERROR TABLE IS FULL.                 SLAP........971200
+C                                                                        SLAP........971300
+         LIB = LIBRAR                                                    SLAP........971400
+         SUB = SUBROU                                                    SLAP........971500
+         MES = MESSG                                                     SLAP........971600
+         DO 30 I = 1,NMSG                                                SLAP........971700
+            IF (LIB.EQ.LIBTAB(I) .AND. SUB.EQ.SUBTAB(I) .AND.            SLAP........971800
+     *         MES.EQ.MESTAB(I) .AND. NERR.EQ.NERTAB(I) .AND.            SLAP........971900
+     *         LEVEL.EQ.LEVTAB(I)) THEN                                  SLAP........972000
+                  KOUNT(I) = KOUNT(I) + 1                                SLAP........972100
+                  ICOUNT = KOUNT(I)                                      SLAP........972200
+                  RETURN                                                 SLAP........972300
+            ENDIF                                                        SLAP........972400
+   30    CONTINUE                                                        SLAP........972500
+C                                                                        SLAP........972600
+         IF (NMSG.LT.LENTAB) THEN                                        SLAP........972700
+C                                                                        SLAP........972800
+C           Empty slot found for new message.                            SLAP........972900
+C                                                                        SLAP........973000
+            NMSG = NMSG + 1                                              SLAP........973100
+            LIBTAB(I) = LIB                                              SLAP........973200
+            SUBTAB(I) = SUB                                              SLAP........973300
+            MESTAB(I) = MES                                              SLAP........973400
+            NERTAB(I) = NERR                                             SLAP........973500
+            LEVTAB(I) = LEVEL                                            SLAP........973600
+            KOUNT (I) = 1                                                SLAP........973700
+            ICOUNT    = 1                                                SLAP........973800
+         ELSE                                                            SLAP........973900
+C                                                                        SLAP........974000
+C           Table is full.                                               SLAP........974100
+C                                                                        SLAP........974200
+            KOUNTX = KOUNTX+1                                            SLAP........974300
+            ICOUNT = 0                                                   SLAP........974400
+         ENDIF                                                           SLAP........974500
+      ENDIF                                                              SLAP........974600
+      RETURN                                                             SLAP........974700
+C                                                                        SLAP........974800
+C     Formats.                                                           SLAP........974900
+C                                                                        SLAP........975000
+ 9000 FORMAT ('0          ERROR MESSAGE SUMMARY' /                       SLAP........975100
+     +   ' LIBRARY    SUBROUTINE MESSAGE START             NERR',        SLAP........975200
+     +   '     LEVEL     COUNT')                                         SLAP........975300
+ 9010 FORMAT (1X,A,3X,A,3X,A,3I10)                                       SLAP........975400
+ 9020 FORMAT ('0OTHER ERRORS NOT INDIVIDUALLY TABULATED = ', I10)        SLAP........975500
+ 9030 FORMAT (1X)                                                        SLAP........975600
+      END                                                                SLAP........975700
+*DECK XGETUA                                                             SLAP........975800
+      SUBROUTINE XGETUA (IUNITA, N)                                      SLAP........975900
+C***BEGIN PROLOGUE  XGETUA                                               SLAP........976000
+C***PURPOSE  Return unit number(s) to which error messages are being     SLAP........976100
+C            sent.                                                       SLAP........976200
+C***LIBRARY   SLATEC (XERROR)                                            SLAP........976300
+C***CATEGORY  R3C                                                        SLAP........976400
+C***TYPE      ALL (XGETUA-A)                                             SLAP........976500
+C***KEYWORDS  ERROR, XERROR                                              SLAP........976600
+C***AUTHOR  Jones, R. E., (SNLA)                                         SLAP........976700
+C***DESCRIPTION                                                          SLAP........976800
+C                                                                        SLAP........976900
+C     Abstract                                                           SLAP........977000
+C        XGETUA may be called to determine the unit number or numbers    SLAP........977100
+C        to which error messages are being sent.                         SLAP........977200
+C        These unit numbers may have been set by a call to XSETUN,       SLAP........977300
+C        or a call to XSETUA, or may be a default value.                 SLAP........977400
+C                                                                        SLAP........977500
+C     Description of Parameters                                          SLAP........977600
+C      --Output--                                                        SLAP........977700
+C        IUNIT - an array of one to five unit numbers, depending         SLAP........977800
+C                on the value of N.  A value of zero refers to the       SLAP........977900
+C                default unit, as defined by the I1MACH machine          SLAP........978000
+C                constant routine.  Only IUNIT(1),...,IUNIT(N) are       SLAP........978100
+C                defined by XGETUA.  The values of IUNIT(N+1),...,       SLAP........978200
+C                IUNIT(5) are not defined (for N .LT. 5) or altered      SLAP........978300
+C                in any way by XGETUA.                                   SLAP........978400
+C        N     - the number of units to which copies of the              SLAP........978500
+C                error messages are being sent.  N will be in the        SLAP........978600
+C                range from 1 to 5.                                      SLAP........978700
+C                                                                        SLAP........978800
+C***REFERENCES  R. E. Jones and D. K. Kahaner, XERROR, the SLATEC        SLAP........978900
+C                 Error-handling Package, SAND82-0800, Sandia            SLAP........979000
+C                 Laboratories, 1982.                                    SLAP........979100
+C***ROUTINES CALLED  J4SAVE                                              SLAP........979200
+C***REVISION HISTORY  (YYMMDD)                                           SLAP........979300
+C   790801  DATE WRITTEN                                                 SLAP........979400
+C   861211  REVISION DATE from Version 3.2                               SLAP........979500
+C   891214  Prologue converted to Version 4.0 format.  (BAB)             SLAP........979600
+C   920501  Reformatted the REFERENCES section.  (WRB)                   SLAP........979700
+C***END PROLOGUE  XGETUA                                                 SLAP........979800
+      DIMENSION IUNITA(5)                                                SLAP........979900
+C***FIRST EXECUTABLE STATEMENT  XGETUA                                   SLAP........980000
+      N = J4SAVE(5,0,.FALSE.)                                            SLAP........980100
+      DO 30 I=1,N                                                        SLAP........980200
+         INDEX = I+4                                                     SLAP........980300
+         IF (I.EQ.1) INDEX = 3                                           SLAP........980400
+         IUNITA(I) = J4SAVE(INDEX,0,.FALSE.)                             SLAP........980500
+   30 CONTINUE                                                           SLAP........980600
+      RETURN                                                             SLAP........980700
+      END                                                                SLAP........980800
